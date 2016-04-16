@@ -1,4 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-	<h2>{{ post }}</h2>
+	<form action="/search/" method="get">
+		<input type="text" name="q">
+		<input type="submit" value="Search">
+	</form>
+	{{ message }}
+	<h2>{{ display }}</h2>
+	<ul>
+	{% for str in strlist %}
+		<li>{{ str }}</li>
+	{% endfor %}
+	</ul>
 {% endblock %}
