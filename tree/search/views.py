@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.shortcuts import render_to_response
 from django.http import HttpResponse
+from search.util import *
 import sys
 import os
 
@@ -12,13 +13,7 @@ def hello(request):
 def search(request):
     if 'q' in request.GET:
         message = request.GET['q']
-        freq = open('studio/request.txt', 'w')
-        freq.write(message + '\n')
-        freq.close()
-        os.system("./studio/check_serve");
-        fres = open('studio/result.txt', 'r')
-        strlist = fres.readlines()
-        fres.close()
+        strlist = get_query_db(message)
     else:
         message = 'Search for a tree'
         strlist = []
