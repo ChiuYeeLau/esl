@@ -18,3 +18,8 @@ def search(request):
         message = 'Search for a tree'
         strlist = []
     return render_to_response('index.html', {'display': 'result', 'message': message, 'strlist': strlist})
+
+def search2(request):
+    message = request.POST.get('status-box', '')
+    strlist = get_query_inter(message, tree, sentence)
+    return render(request, 'hello.html', {'time': datatime.now(), 'output': strlist})
