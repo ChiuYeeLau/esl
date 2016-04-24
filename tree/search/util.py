@@ -4,26 +4,13 @@
 import os
 import re
 import ctypes
+from search.parse import *
 from pymongo import MongoClient
 client = MongoClient('166.111.139.42')
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax
 check_serve = ctypes.CDLL('./search/check_serve.so')
-
-
-class Node(object):
-    def __init__(self, elem="", parent=None, depth=-1):
-        self.elem = elem
-        self.children = []
-        self.parent = parent
-        self.size = 1
-        self.depth = depth
-
-
-class Tree(object):
-    def __init__(self):
-        self.root = Node()
 
 
 def get_query_disk(message):
@@ -43,6 +30,67 @@ def extract_list(message):
     return mlist
 
 
+def state_plus(state):
+    if state[0] == 1:
+        state[0] = 0
+        state[1] += 1
+
+
+def get_pos_list(message, sentence, pos):
+    i, j = 0, pos
+    state = [0, 0]
+    plist = []
+    for i in range(pos):
+        if sentence[i] == '(':
+            state[0] = 1
+        elif sentence[i] == ')':
+            state_plus(state)
+    state[0] = 0
+    while i < len(message):
+        if message[i] == ' ':
+            level = 0
+            while level > 1 or sentence[j] != ')':
+                if sentence[j] == '(':
+                    level += 1
+                    state[0] = 1
+                elif sentence[j] == ')':
+                    level -= 1
+                    state_plus(state)
+                j += 1
+            state_plus(state)
+            i += 1
+        else:
+            if message[i] == ')':
+                if state[0] == 1:
+                    plist.append(state[1])
+                    state[1] += 1
+                    state[0] = 0
+            elif message[i] == '(':
+                state[0] = 1
+            i += 1
+            j += 1
+    return plist
+
+
+def get_query_db2(tree, message):
+    mlist = extract_list(message)
+    rs = cl.find({'tokens.l': {'$all': mlist}})
+    strlist = []
+    cnt = 0
+    msg = str(message)
+    for sen in rs:
+        if cnt > 10:
+            break
+        sent = str(sen['tree'])
+        tp = check_serve.find(msg, sent)
+        if tp != -1:
+            tplist = get_pos_list(msg, sent, tp)
+            strlist.append(tuple(str(sen['sentence']), tplist))
+            cnt = cnt + 1
+    return strlist
+
+
+
 def get_query_db(message):
     mlist = extract_list(message)
     rs = cl.find({'tokens.l': {'$all': mlist}})
@@ -55,16 +103,16 @@ def get_query_db(message):
         sent = str(sen['tree'])
         tp = check_serve.find(msg, sent)
         if tp != -1:
-            strlist.append(tuple(sent, str(sen['sentence']), tp))
+            strlist.append(str(sen['sentence']))
             cnt = cnt + 1
     return strlist
 
 
-def get_message(tree, key, var):
+def get_message_cur(tree, key, var):
     ret = ''
     mlist = []
     for child in tree.children:
-        mlist.append(get_message(tree, key, var))
+        mlist.append(get_message_cur(tree, key, var))
     cnt = len([0 for msg in mlist if msg != ''])
     if cnt > 0 and var[2] <= tree.depth:
         for i, child in enumerate(tree.children):
@@ -72,10 +120,10 @@ def get_message(tree, key, var):
                 mlist[i] = '( )'
             ret = ret + '(%s%s)' % (child.elem, mlist[i])
     if len(tree.children) == 0:
-        if var[1] == key[var[0]]:
-            var[0] = var[0] + 1
+        if var[0] < len(key) and var[1] == key[var[0]]:
+            var[0] += 1
             ret = '(%s)' % tree.elem
-        var[1] = var[1] + 1
+        var[1] += 1
     return ret
 
 
@@ -87,18 +135,25 @@ def get_depth(tree, key, var):
     if cnt > 2:
         var[2] = min(var[2], tree.depth)
     if len(tree.children) == 0:
-        if var[1] == key[var[0]]:
-            var[0] = var[0] + 1
+        if var[0] < len(key) and var[1] == key[var[0]]:
+            var[0] += 1
             cnt = 1
             if len(key) == 1:
                 var[2] = tree.depth
-        var[1] = var[1] + 1
+        var[1] += 1
     return cnt
 
-
-def get_query_inter(message, tree_example, key, sentence):
+def get_message(tree, key):
     init = [0, 0, 0]
     get_depth(tree_example[0], key, init)
     init[0], init[1] = 0, 0
-    msg = get_message(tree_example[0], key, init)
-    return get_query_db(msg)
+    return get_message_cur(tree_example[0], key, init)
+
+def get_query_inter(sentence, key):
+    rquest = parse(sentence)
+    treeBracket = rquest['sentences'][0]['parse']
+    treeS = tree_format(treeBracket)
+    tree_example = transfer_Node(treeS)
+    
+    msg = get_message(tree_example[0], key)
+    return get_query_db2(tree_example[0], msg)
