@@ -93,6 +93,7 @@ def get_query_db2(tree, message):
 
 def get_query_db(message):
     mlist = extract_list(message)
+    mlist.sort(key = lambda x: -len(x))
     rs = cl.find({'tokens.l': {'$all': mlist}})
     strlist = []
     cnt = 0
