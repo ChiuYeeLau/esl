@@ -10,11 +10,9 @@ class Node(object):
         self.size = 1
         self.depth = depth
 
-
 class Tree(object):
     def __init__(self):
         self.root = Node()
-
 
 def tree_structure_to_json(root):
     if root.elem == "":
@@ -38,7 +36,6 @@ def tree_structure_to_json(root):
                     print ","
                 else:
                     print "]}"
-
 
 def transfer_Node(text):
     level = 0
@@ -68,7 +65,6 @@ def transfer_Node(text):
             word += c
     return tree_group
 
-
 def tree_format(s):
     state = 0
     q = []
@@ -90,7 +86,6 @@ def tree_format(s):
             q.append(c)
 
     return ''.join(q)
-
 
 def parse(s):
     r = requests.post('http://166.111.139.15:9000/?properties%3d%7b%22annotators%22%3a%22tokenize%2cssplit%2cpos%2clemma%2cparse%22%2c%22outputFormat%22%3a%22json%22%7d%0a', data=s)

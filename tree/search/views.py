@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.shortcuts import render_to_response
 from django.http import HttpResponse
 from search.util import *
+import json
 import sys
 import os
 
@@ -20,6 +21,17 @@ def search(request):
     return render_to_response('index.html', {'display': 'result', 'message': message, 'strlist': strlist})
 
 def search2(request):
-    message = request.POST.get('status-box', '')
-    strlist = get_query_inter(message, tree, sentence)
-    return render(request, 'hello.html', {'time': datatime.now(), 'output': strlist})
+    if request.method == 'GET':
+        message = request.GET.get('sentence', '')
+        key = request.GET.get('word_pos',[])
+        if message != '':
+            strlist = get_query_inter(message, key)
+        else:
+            strlist = []
+    else:
+        strlist = []
+    #message = 'a computer database'
+    #key = [0, 1, 2]
+    #strlist = get_query_inter(message, key)
+    return HttpResponse(json.dumps(strlist))
+    #return render_to_response('search.html', {'output': strlist})

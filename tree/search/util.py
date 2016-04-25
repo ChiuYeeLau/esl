@@ -23,18 +23,15 @@ def get_query_disk(message):
     fres.close()
     return strlist
 
-
 def extract_list(message):
     p = re.compile('\([^()]*\)')
     mlist = [st[1:-1] for st in p.findall(message) if st[1] != ' ']
     return mlist
 
-
 def state_plus(state):
     if state[0] == 1:
         state[0] = 0
         state[1] += 1
-
 
 def get_pos_list(message, sentence, pos):
     i, j = 0, pos
@@ -46,6 +43,8 @@ def get_pos_list(message, sentence, pos):
         elif sentence[i] == ')':
             state_plus(state)
     state[0] = 0
+    #print pos, state[1]
+    i = 0
     while i < len(message):
         if message[i] == ' ':
             level = 0
@@ -71,7 +70,6 @@ def get_pos_list(message, sentence, pos):
             j += 1
     return plist
 
-
 def get_query_db2(tree, message):
     mlist = extract_list(message)
     rs = cl.find({'tokens.l': {'$all': mlist}})
@@ -79,17 +77,19 @@ def get_query_db2(tree, message):
     cnt = 0
     msg = str(message)
     for sen in rs:
-        if cnt > 10:
-            break
+        #if cnt > 10:
+        #    break
         sent = str(sen['tree'])
         tp = check_serve.find(msg, sent)
         if tp != -1:
             tplist = get_pos_list(msg, sent, tp)
-            strlist.append(tuple(str(sen['sentence']), tplist))
+            stplist = [str(ele) for ele in tplist]
+            strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist)})
+            #strlist.append((str(sen['sentence']), tplist))
+            #strlist.append(sen['sentence'])
+            #print sen['sentence'], tplist
             cnt = cnt + 1
     return strlist
-
-
 
 def get_query_db(message):
     mlist = extract_list(message)
@@ -107,30 +107,33 @@ def get_query_db(message):
             cnt = cnt + 1
     return strlist
 
-
 def get_message_cur(tree, key, var):
     ret = ''
     mlist = []
     for child in tree.children:
-        mlist.append(get_message_cur(tree, key, var))
-    cnt = len([0 for msg in mlist if msg != ''])
-    if cnt > 0 and var[2] <= tree.depth:
+        mlist.append(get_message_cur(child, key, var))
+    clist = [msg for msg in mlist if msg != '']
+    if len(clist) > 0 and tree.depth >= var[2]:
         for i, child in enumerate(tree.children):
             if mlist[i] == '':
                 mlist[i] = '( )'
-            ret = ret + '(%s%s)' % (child.elem, mlist[i])
-    if len(tree.children) == 0:
+            if len(child.children) == 0:
+                ret = ret + mlist[i]
+            else:
+                ret = ret + '(%s%s)' % (child.elem, mlist[i])
+    elif len(clist) > 0 and tree.depth < var[2]:
+        ret = clist[0]
+    elif len(tree.children) == 0:
         if var[0] < len(key) and var[1] == key[var[0]]:
             var[0] += 1
             ret = '(%s)' % tree.elem
         var[1] += 1
     return ret
 
-
 def get_depth(tree, key, var):
     cnt = 0
     for child in tree.children:
-        if get_depth(tree, key, var) > 1:
+        if get_depth(child, key, var) > 1:
             cnt = cnt + 1
     if cnt > 2:
         var[2] = min(var[2], tree.depth)
@@ -145,15 +148,20 @@ def get_depth(tree, key, var):
 
 def get_message(tree, key):
     init = [0, 0, 0]
-    get_depth(tree_example[0], key, init)
+    get_depth(tree, key, init)
+    #print init[2]
     init[0], init[1] = 0, 0
-    return get_message_cur(tree_example[0], key, init)
+    return get_message_cur(tree, key, init)
 
 def get_query_inter(sentence, key):
+    #print sentence, key
     rquest = parse(sentence)
     treeBracket = rquest['sentences'][0]['parse']
+    #print treeBracket
     treeS = tree_format(treeBracket)
+    #print treeS
     tree_example = transfer_Node(treeS)
-    
+
     msg = get_message(tree_example[0], key)
+    #print 'msg:', msg
     return get_query_db2(tree_example[0], msg)
