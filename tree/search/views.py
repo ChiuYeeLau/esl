@@ -23,7 +23,8 @@ def search(request):
 def search2(request):
     if request.method == 'GET':
         message = request.GET.get('sentence', '')
-        key = request.GET.get('word_pos',[])
+        keys = request.GET.get('word_pos', '')
+        key = [int(ele) for ele in keys.split(' ') if len(ele) > 0]
         if message != '':
             strlist = get_query_inter(message, key)
         else:
