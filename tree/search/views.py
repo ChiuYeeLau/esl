@@ -36,3 +36,14 @@ def search2(request):
     #strlist = get_query_inter(message, key)
     return HttpResponse(json.dumps(strlist))
     #return render_to_response('search.html', {'output': strlist})
+
+def get_tree(request):
+    if request.method == 'GET':
+        message = request.GET.get('tree', '')
+        if message != '':
+            trees = get_parse(message)
+        else:
+            trees = ''
+    else:
+        trees = ''
+    return HttpResponse(trees)

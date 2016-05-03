@@ -154,6 +154,12 @@ def get_message(tree, key):
     init[0], init[1] = 0, 0
     return get_message_cur(tree, key, init)
 
+def get_parse(sentence):
+    rquest = parse(sentence)
+    treeBracket = rquest['sentences'][0]['parse']
+    treeS = tree_format(treeBracket)
+    return treeS
+
 def get_query_inter(sentence, key):
     #print sentence, key
     rquest = parse(sentence)
