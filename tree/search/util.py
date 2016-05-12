@@ -72,6 +72,7 @@ def get_pos_list(message, sentence, pos):
 
 def get_query_db2(tree, message):
     mlist = extract_list(message)
+    mlist.sort(key = lambda word: -len(word))
     rs = cl.find({'tokens.l': {'$all': mlist}})
     strlist = []
     cnt = 0
