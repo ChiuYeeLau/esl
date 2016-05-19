@@ -65,6 +65,34 @@ def transfer_Node(text):
             word += c
     return tree_group
 
+def tree_transfer(text):
+    tmp = ""
+    last_pop = ""
+    queue = []
+    answer = []
+    answer += "id,\n"
+    for c in text:
+        if c == "(":
+            if tmp != "":
+                if last_pop == tmp:
+                    tmp += "1"
+                queue.append(tmp)
+                answer += "@".join(queue) + ",\n"
+                tmp = ""
+        elif c == ")":
+            if tmp != "":
+                if last_pop == tmp:
+                    tmp += "1"
+                queue.append(tmp)
+                tmp = ""
+                answer += "@".join(queue) + ",\n"
+                last_pop = queue.pop()
+            else:
+                last_pop = queue.pop()
+        else:
+            tmp += c
+    return "".join(answer)
+
 def tree_format(s):
     state = 0
     q = []
@@ -85,6 +113,7 @@ def tree_format(s):
         if ord(c) > 32:
             q.append(c)
 
+    print "".join(q)
     return ''.join(q)
 
 def parse(s):

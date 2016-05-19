@@ -159,7 +159,8 @@ def get_parse(sentence):
     rquest = parse(sentence)
     treeBracket = rquest['sentences'][0]['parse']
     treeS = tree_format(treeBracket)
-    return treeS
+    treeC = tree_transfer(treeS)
+    return treeC
 
 def get_query_inter(sentence, key):
     #print sentence, key
