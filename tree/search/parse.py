@@ -113,7 +113,6 @@ def tree_format(s):
         if ord(c) > 32:
             q.append(c)
 
-    print "".join(q)
     return ''.join(q)
 
 def parse(s):

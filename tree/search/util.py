@@ -135,7 +135,7 @@ def get_message_cur(tree, key, var):
 def get_depth(tree, key, var):
     cnt = 0
     for child in tree.children:
-        if get_depth(child, key, var) > 1:
+        if get_depth(child, key, var) > 0:
             cnt = cnt + 1
     if cnt > 2:
         var[2] = min(var[2], tree.depth)
@@ -149,9 +149,9 @@ def get_depth(tree, key, var):
     return cnt
 
 def get_message(tree, key):
-    init = [0, 0, 0]
+    init = [0, 0, 1024]
     get_depth(tree, key, init)
-    #print init[2]
+    # print init[2]
     init[0], init[1] = 0, 0
     return get_message_cur(tree, key, init)
 
@@ -163,14 +163,14 @@ def get_parse(sentence):
     return treeC
 
 def get_query_inter(sentence, key):
-    #print sentence, key
+    # print sentence, key
     rquest = parse(sentence)
     treeBracket = rquest['sentences'][0]['parse']
-    #print treeBracket
+    # print treeBracket
     treeS = tree_format(treeBracket)
-    #print treeS
+    # print treeS
     tree_example = transfer_Node(treeS)
 
     msg = get_message(tree_example[0], key)
-    #print 'msg:', msg
+    # print 'msg:', msg
     return get_query_db2(tree_example[0], msg)
