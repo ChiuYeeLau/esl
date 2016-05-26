@@ -47,3 +47,6 @@ def get_tree(request):
     else:
         trees = ''
     return HttpResponse(trees)
+
+def static_demo(request):
+    return render_to_response('search.html')
