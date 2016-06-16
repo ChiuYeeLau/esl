@@ -133,6 +133,7 @@ def get_message_cur(tree, key, var):
             var[0] += 1
             ret = '(%s)' % tree.elem
         var[1] += 1
+    # print ret
     return ret
 
 def get_depth(tree, key, var):
@@ -140,7 +141,7 @@ def get_depth(tree, key, var):
     for child in tree.children:
         if get_depth(child, key, var) > 0:
             cnt = cnt + 1
-    if cnt > 2:
+    if cnt >= 2:
         var[2] = min(var[2], tree.depth)
     if len(tree.children) == 0:
         if var[0] < len(key) and var[1] == key[var[0]]:
