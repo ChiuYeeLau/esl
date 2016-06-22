@@ -1,5 +1,5 @@
 // var hostAddr = '127.0.0.1:8000';
-var hostAddr = 'esldownloader1.cloudapp.net';
+var hostAddr = 'esldownloader1.cloudapp.net:8000';
 
 var main = function()
 {
@@ -71,7 +71,7 @@ var main = function()
                         words[pos[i]] = "<span>" + words[pos[i]] + "</span>";
                     }
                     words = words.join(' ');
-                    answer += "<div class=\"sentence\">" + words + "</br>" + "</div>";
+                    answer += "<li class=\"sentence\">" + words + "</li>";
                 }
             //     console.log(answer)
             //     r = $.map(data, function (item) { return item.sentence + '<br>' }); 
@@ -113,7 +113,7 @@ var main = function()
         });
 
     $(document).on("click",".sentence", function(text){
-        console.log('clicked');
+        // console.log('clicked');
         document.treetext = $(this).text();
         jQuery.getScript("./parse_tree1.js");
     });
