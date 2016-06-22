@@ -49,7 +49,7 @@ if(document.treenumber==true)
 
 
 
-var flare = $.get(hostAddr + "/syntaxtree/", {"tree":post}, 
+var flare = $.get("http://" + hostAddr + "/syntaxtree/", {"tree":post}, 
         function(data){
            console.log(data); 
   data = d3.csvParse(data);
