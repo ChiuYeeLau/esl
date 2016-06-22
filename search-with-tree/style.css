@@ -1,0 +1,107 @@
+html,
+body {
+    height: 100%;
+    font-family: 'Roboto', sans-serif;
+    color: #404040;
+    background-color: #eee;
+}
+
+.container {
+    margin-top: 20px;
+}
+
+.status-box {
+    width: 1252px;
+}
+
+.button-group {
+    margin-bottom: 20px;
+
+}
+
+.posts {
+    clear: both;
+    list-style: none;
+    padding-left: 0;
+}
+
+div .word{
+    background-color: #fff;
+    border: 1px solid #d8d8d8;
+    padding-top: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    word-wrap: break-word;
+    min-height: 18px;
+    display: inline-block;
+
+}
+
+div .active{
+    background-color: red;
+}
+
+span {
+    color:red;
+}
+
+.node circle {
+  fill: #999;
+}
+
+.node text {
+  font: 15px sans-serif;
+}
+
+.node--internal circle {
+  fill: #555;
+}
+
+.node--internal text {
+  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
+}
+.node--leaf rect {
+  border-radius: 1px;
+  opacity: 0.5;
+}
+
+.node--leaf text{
+  font-size: 18px;
+  white-space: pre;
+}
+
+.active  {
+  fill: red;
+}
+
+.link {
+  fill: none;
+  stroke: #555;
+  stroke-opacity: 0.4;
+  stroke-width: 1.5px;
+}
+
+.tree {
+    width: 50%;
+    float: left;
+    display: inline;
+    height: 100%;
+}
+.output {
+    width: 50%;
+    float:left; 
+    display: inline;
+}
+
+svg text {
+    -webkit-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
+svg text::selection {
+    background: none;
+}
+
