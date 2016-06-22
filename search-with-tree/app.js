@@ -1,3 +1,6 @@
+// var hostAddr = '127.0.0.1:8000';
+var hostAddr = 'esldownloader1.cloudapp.net';
+
 var main = function()
 {
     $('.btn').click(function() {
@@ -47,7 +50,7 @@ var main = function()
 
     //    console.log(sentence);
     //    console.log(word_pos);
-        $.getJSON("http://127.0.0.1:8000/search2/", {"sentence":sentence, "word_pos":word_pos}, 
+        $.getJSON("http://" + hostAddr + "/search2/", {"sentence":sentence, "word_pos":word_pos}, 
             function(data){
                 console.log(data);
             //    r = $.map(data, function (item) { return item.sentence + '<br>' });
