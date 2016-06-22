@@ -51,7 +51,7 @@ if(document.treenumber==true)
 
 var flare = $.get("http://" + hostAddr + "/syntaxtree/", {"tree":post}, 
         function(data){
-           console.log(data); 
+           // console.log(data); 
   data = d3.csvParse(data);
                   
 
