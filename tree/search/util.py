@@ -6,7 +6,8 @@ import re
 import ctypes
 from search.parse import *
 from pymongo import MongoClient
-client = MongoClient('166.111.139.42')
+# client = MongoClient('166.111.139.42')
+client = MongoClient()
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax
@@ -137,7 +138,7 @@ def get_depth(tree, key, var):
     for child in tree.children:
         if get_depth(child, key, var) > 0:
             cnt = cnt + 1
-    if cnt > 2:
+    if cnt >= 2:
         var[2] = min(var[2], tree.depth)
     if len(tree.children) == 0:
         if var[0] < len(key) and var[1] == key[var[0]]:
