@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.contrib import admin
-from search.views import hello, search, search2, get_tree, static_demo
+from search.views import hello, search, search2, get_tree
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
@@ -23,5 +23,4 @@ urlpatterns = [
     url(r'^search/', search),
     url(r'^search2/', search2),
     url(r'^syntaxtree/', get_tree),
-    url(r'^demo/', static_demo),
 ]

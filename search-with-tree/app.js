@@ -1,8 +1,12 @@
 var main = function()
 {
-
-
     $('.btn').click(function() {
+
+        document.treenumber=true;
+
+        $('.tree').empty();
+        jQuery.getScript("./parse_tree.js");
+        $('.posts').empty();
         var post = $('.status-box').val();
         var post1 = post.split(" ");
         for(var i = 0; i < post1.length; i++)
@@ -13,7 +17,6 @@ var main = function()
             .text(post1[i])
             .attr("width", function(){return (post1[i].length * 15).toString() + "px";});
             //display:inline-block
-
            // div.classed("active", "true");
             div.addClass("word");
 
@@ -44,7 +47,7 @@ var main = function()
 
     //    console.log(sentence);
     //    console.log(word_pos);
-        $.getJSON("http://esldownloader1.cloudapp.net/search2/", {"sentence":sentence, "word_pos":word_pos}, 
+        $.getJSON("http://esldownloader1.cloudapp.net/search2/", {"sentence":sentence, "word_pos":"0 1 2"}, 
             function(data){
                 console.log(data);
             //    r = $.map(data, function (item) { return item.sentence + '<br>' });
@@ -60,18 +63,21 @@ var main = function()
                     words[pos[i]] = "<span>" + words[pos[i]] + "</span>";
                 }
                 words = words.join(' ');
-                answer += words + "<br>";
+                answer += "<div class=\"sentence\">" + words + "</br>" + "</div>";
             }
-            console.log(answer)
-   //     r = $.map(data, function (item) { return item.sentence + '<br>' });    
-            $('.output').html(answer);
+     //       console.log(answer)
+   //     r = $.map(data, function (item) { return item.sentence + '<br>' }); 
+   
+                $('.output').html(answer);
             });
 
 
-   
+
+
 
        // $('.status-box').val('');
     })
+    
 
     document.ismousedown = false;
     $('div').on('mousedown','.word', function(){
@@ -92,16 +98,20 @@ var main = function()
             }
         });
 
-    $('div').on('mouseup','.word', function(){ 
+    $('body').on('mouseup', function(){ 
+       // console.log("aaa");
             document.ismousedown = false;
         });
 
-    $('div').on('mouseleave','.posts', function(){ 
-            console.log("aaa");
-            document.ismousedown = false;
-        });
+    $(document).on("click",".sentence", function(text){
+        console.log('clicked');
+        document.treetext = $(this).text();
+        jQuery.getScript("./parse_tree1.js");
+
+    });
 
 
     }
 
+  
 $(document).ready(main);

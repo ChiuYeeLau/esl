@@ -11,6 +11,9 @@ client = MongoClient()
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax
+'''
+cl = MongoClient('127.0.0.1').local.syntax
+'''
 check_serve = ctypes.CDLL('./search/check_serve.so')
 
 
@@ -131,6 +134,7 @@ def get_message_cur(tree, key, var):
             var[0] += 1
             ret = '(%s)' % tree.elem
         var[1] += 1
+    # print ret
     return ret
 
 def get_depth(tree, key, var):
