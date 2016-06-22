@@ -7,13 +7,13 @@ import ctypes
 from search.parse import *
 from pymongo import MongoClient
 # client = MongoClient('166.111.139.42')
-client = MongoClient()
-db = client.test
-db.authenticate('test', 'test')
-cl = db.syntax
-'''
+# client = MongoClient()
+# db = client.test
+# db.authenticate('test', 'test')
+# cl = db.syntax
+
 cl = MongoClient('127.0.0.1').local.syntax
-'''
+
 check_serve = ctypes.CDLL('./search/check_serve.so')
 
 
@@ -81,6 +81,7 @@ def get_query_db2(tree, message):
     strlist = []
     cnt = 0
     msg = str(message)
+    # print rs.count()
     for sen in rs:
         #if cnt > 10:
         #    break
@@ -125,6 +126,8 @@ def get_message_cur(tree, key, var):
                 mlist[i] = '( )'
             if len(child.children) == 0:
                 ret = ret + mlist[i]
+            elif mlist[i] == '( )':
+                ret = ret + '( )'
             else:
                 ret = ret + '(%s%s)' % (child.elem, mlist[i])
     elif len(clist) > 0 and tree.depth < var[2]:

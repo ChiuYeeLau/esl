@@ -76,12 +76,16 @@ def tree_transfer(text):
             if tmp != "":
                 if last_pop == tmp:
                     tmp += "1"
+                elif len(queue) > 0 and tmp == queue[-1]:
+                    tmp += "1"
                 queue.append(tmp)
                 answer += "@".join(queue) + ",\n"
                 tmp = ""
         elif c == ")":
             if tmp != "":
                 if last_pop == tmp:
+                    tmp += "1"
+                elif len(queue) > 0 and tmp == queue[-1]:
                     tmp += "1"
                 queue.append(tmp)
                 tmp = ""

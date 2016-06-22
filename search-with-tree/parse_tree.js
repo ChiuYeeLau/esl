@@ -47,7 +47,7 @@ if(document.treenumber==true)
 
 
 
-var flare = $.get("http://esldownloader1.cloudapp.net/syntaxtree/", {"tree":post}, 
+var flare = $.get("http://127.0.0.1:8000/syntaxtree/", {"tree":post}, 
         function(data){
             
   data = d3.csvParse(data);

@@ -47,7 +47,7 @@ var main = function()
 
     //    console.log(sentence);
     //    console.log(word_pos);
-        $.getJSON("http://esldownloader1.cloudapp.net/search2/", {"sentence":sentence, "word_pos":"0 1 2"}, 
+        $.getJSON("http://127.0.0.1:8000/search2/", {"sentence":sentence, "word_pos":word_pos}, 
             function(data){
                 console.log(data);
             //    r = $.map(data, function (item) { return item.sentence + '<br>' });
