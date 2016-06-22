@@ -2,6 +2,9 @@ import requests
 import json
 
 
+# NLP_SERVER = '166.111.139.15:9000'
+NLP_SERVER = 'localhost:9000'
+
 class Node(object):
     def __init__(self, elem="", parent=None, depth=-1):
         self.elem = elem
@@ -120,7 +123,7 @@ def tree_format(s):
     return ''.join(q)
 
 def parse(s):
-    r = requests.post('http://166.111.139.15:9000/?properties%3d%7b%22annotators%22%3a%22tokenize%2cssplit%2cpos%2clemma%2cparse%22%2c%22outputFormat%22%3a%22json%22%7d%0a', data=s)
+    r = requests.post('http://' + NLP_SERVER + '/?properties%3d%7b%22annotators%22%3a%22tokenize%2cssplit%2cpos%2clemma%2cparse%22%2c%22outputFormat%22%3a%22json%22%7d%0a', data=s)
     return r.json()
 """sentence_input = raw_input("enter the sentence:")
 request = parse(sentence_input)
