@@ -7,12 +7,12 @@ import ctypes
 from search.parse import *
 from pymongo import MongoClient
 # client = MongoClient('166.111.139.42')
-# client = MongoClient()
-# db = client.test
-# db.authenticate('test', 'test')
-# cl = db.syntax
+client = MongoClient()
+db = client.test
+db.authenticate('test', 'test')
+cl = db.syntax
 
-cl = MongoClient('127.0.0.1').local.syntax
+#cl = MongoClient('127.0.0.1').local.syntax
 
 check_serve = ctypes.CDLL('./search/check_serve.so')
 
@@ -74,10 +74,9 @@ def get_pos_list(message, sentence, pos):
             j += 1
     return plist
 
-def get_query_db2(tree, message):
-    mlist = extract_list(message)
-    mlist.sort(key = lambda word: -len(word))
-    rs = cl.find({'tokens.l': {'$all': mlist}})
+def get_query_db2(tree, message, keys):
+    keys.sort(key = lambda word: -len(word))
+    rs = cl.find({'tokens.l': {'$all': keys}})
     strlist = []
     cnt = 0
     msg = str(message)
@@ -174,11 +173,15 @@ def get_query_inter(sentence, key):
     # print sentence, key
     rquest = parse(sentence)
     treeBracket = rquest['sentences'][0]['parse']
+    tokens = rquest['sentences'][0]['tokens']
+    keys = []
+    for k in key:
+        keys.append(tokens[k]['lemma'])
     # print treeBracket
     treeS = tree_format(treeBracket)
     # print treeS
     tree_example = transfer_Node(treeS)
 
     msg = get_message(tree_example[0], key)
-    # print 'msg:', msg
-    return get_query_db2(tree_example[0], msg)
+    print 'msg, keys:', msg, keys
+    return get_query_db2(tree_example[0], msg, keys)
