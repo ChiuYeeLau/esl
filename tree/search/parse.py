@@ -99,6 +99,30 @@ def tree_transfer(text):
         else:
             tmp += c
     return "".join(answer)
+    '''
+    tmp = ""
+    cnt = {}
+    stack = []
+    answer = ["id"]
+    for c in text:
+        if c in ("(", ")"):
+            if tmp != "":
+                if c == "(":
+                    if tmp not in cnt:
+                        cnt[tmp] = 0
+                    cnt[tmp] += 1
+                    ins = tmp + str(cnt[tmp])
+                else:
+                    ins = tmp
+                stack.append(ins)
+                answer.append("@".join(stack))
+                tmp = ""
+        else:
+            tmp += c
+        if c == ")":
+            stack.pop()
+    return ",\n".join(answer) + '\n'
+    '''
 
 def tree_format(s):
     state = 0
