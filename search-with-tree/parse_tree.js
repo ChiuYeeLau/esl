@@ -1,3 +1,5 @@
+// var hostAddr = '127.0.0.1:8000';
+var hostAddr = 'esldownloader1.cloudapp.net:8000';
 
 var originconsole = console;
 function zoom() {
@@ -47,7 +49,7 @@ if(document.treenumber==true)
 
 
 
-var flare = $.get("http://127.0.0.1:8000/syntaxtree/", {"tree":post}, 
+var flare = $.get("http://" + hostAddr + "/syntaxtree/", {"tree":post}, 
         function(data){
             
   data = d3.csvParse(data);

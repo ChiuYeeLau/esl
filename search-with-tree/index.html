@@ -1,32 +1,36 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <head>
-      <link href="style.css" rel="stylesheet">
-      <title>search with a parse tree</title>
+    <link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link href="style.css" rel="stylesheet">
+    <title>search with a parse tree</title>
 </head>
 
 <body>
-<script src="./d3.v3.min.js"></script>
-<script src="./d3.v4.0.0-alpha.29.js"></script>
-<script src="./jquery.min.js"></script>
-<script src="./interaction.js"></script>
     <div class="container">
         <form>
             <div class="form-group">
-                <textarea   class="status-box" rows="2" placeholder="Write your sentence here" value="a computer database"></textarea>
+                <textarea class="status-box" rows="2" placeholder="Write your sentence here" value="a computer database">Note that such a setup is only temporary, we need such a thorough validation because we are still in the process of revising the guidelines.</textarea>
             </div>
         </form>
         <div class="button-group">
-            <a href="#" class="btn">Post</a>
-            <a href="#" class="btn1">submit</a>
+            <button type="button" data-loading-text="Loading..." class="btn btn-default btn-post" autocomplete="off">Post</button>
+            <button type="button" data-loading-text="Loading..." class="btn btn-primary btn-submit" autocomplete="off">Submit</button>
+            <!-- <a href="#" class="btn btn-default btn-post"></a> -->
+            <!-- <a href="#" class="btn btn-primary btn-submit">Submit</a> -->
         </div>
         <ul class="posts">
         </ul>
     </div>
     <div class="tree">
     </div>
-    <div class="output">The output is:
+    <div>The output is:
+        <ul class="output"></ul>
     </div>
-<script src="./jquery.min.js"></script>
-<script src="app.js"></script>
-
+    <script src="http://cdn.bootcss.com/jquery/1.11.3/jquery.min.js"></script>
+    <script src="http://cdn.bootcss.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="http://cdn.bootcss.com/d3/3.5.17/d3.min.js"></script>
+    <script src="d3.v4.0.0-alpha.29.js"></script>
+    <script src="interaction.js"></script>
+    <script src="app.js"></script>
+</body>
