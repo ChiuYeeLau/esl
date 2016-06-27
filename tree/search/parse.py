@@ -69,6 +69,7 @@ def transfer_Node(text):
     return tree_group
 
 def tree_transfer(text):
+    '''
     tmp = ""
     last_pop = ""
     queue = []
@@ -101,28 +102,36 @@ def tree_transfer(text):
     return "".join(answer)
     '''
     tmp = ""
-    cnt = {}
     stack = []
+    stacko = []
     answer = ["id"]
     for c in text:
         if c in ("(", ")"):
             if tmp != "":
-                if c == "(":
-                    if tmp not in cnt:
-                        cnt[tmp] = 0
-                    cnt[tmp] += 1
-                    ins = tmp + str(cnt[tmp])
+                if len(stack) != 0:
+                    node = stack[-1]
+                    if tmp not in node[1]:
+                        node[1][tmp] = 0
+                    else:
+                        node[1][tmp] += 1
+                    if tmp == node[0] and node[1][tmp] == node[2]:
+                        node[1][tmp] += 1
+                    node = [tmp, {tmp : -1}, node[1][tmp]]
                 else:
-                    ins = tmp
-                stack.append(ins)
-                answer.append("@".join(stack))
+                    node = [tmp, {tmp : -1}, 0]
+                stack.append(node)
+                if node[2] != 0:
+                    stacko.append(tmp + str(node[2]))
+                else:
+                    stacko.append(tmp)
+                answer.append("@".join(stacko))
                 tmp = ""
         else:
             tmp += c
         if c == ")":
             stack.pop()
+            stacko.pop()
     return ",\n".join(answer) + '\n'
-    '''
 
 def tree_format(s):
     state = 0

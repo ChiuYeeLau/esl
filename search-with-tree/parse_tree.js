@@ -1,5 +1,5 @@
-// var hostAddr = '127.0.0.1:8000';
-var hostAddr = 'esldownloader1.cloudapp.net:8000';
+var hostAddr = '127.0.0.1:8000';
+// var hostAddr = 'esldownloader1.cloudapp.net:8000';
 
 var originconsole = console;
 function zoom() {
