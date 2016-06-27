@@ -16,7 +16,7 @@ cl = db.syntax
 
 check_serve = ctypes.CDLL('./search/check_serve.so')
 
-
+'''
 def get_query_disk(message):
     freq = open('studio/request.txt', 'w')
     freq.write(message + '\n')
@@ -26,6 +26,7 @@ def get_query_disk(message):
     strlist = fres.readlines()
     fres.close()
     return strlist
+'''
 
 def extract_list(message):
     p = re.compile('\([^()]*\)')
@@ -167,7 +168,7 @@ def get_parse(sentence):
     treeBracket = rquest['sentences'][0]['parse']
     treeS = tree_format(treeBracket)
     treeC = tree_transfer(treeS)
-    print treeC
+    # print treeC
     return treeC
 
 def get_query_inter(sentence, key):

@@ -71,37 +71,6 @@ def transfer_Node(text):
 def tree_transfer(text):
     '''
     tmp = ""
-    last_pop = ""
-    queue = []
-    answer = []
-    answer += "id,\n"
-    for c in text:
-        if c == "(":
-            if tmp != "":
-                if last_pop == tmp:
-                    tmp += "1"
-                elif len(queue) > 0 and tmp == queue[-1]:
-                    tmp += "1"
-                queue.append(tmp)
-                answer += "@".join(queue) + ",\n"
-                tmp = ""
-        elif c == ")":
-            if tmp != "":
-                if last_pop == tmp:
-                    tmp += "1"
-                elif len(queue) > 0 and tmp == queue[-1]:
-                    tmp += "1"
-                queue.append(tmp)
-                tmp = ""
-                answer += "@".join(queue) + ",\n"
-                last_pop = queue.pop()
-            else:
-                last_pop = queue.pop()
-        else:
-            tmp += c
-    return "".join(answer)
-    '''
-    tmp = ""
     stack = []
     stacko = []
     answer = ["id"]
@@ -131,6 +100,30 @@ def tree_transfer(text):
         if c == ")":
             stack.pop()
             stacko.pop()
+    '''
+    tmp = ""
+    stack = []
+    cnt = {}
+    answer = ["id"]
+    for c in text:
+        if c in ("(", ")"):
+            if tmp != "":
+                if tmp == ',':
+                    tmp = '_comma_'
+                if c == ')':
+                    stack.append(tmp)
+                else:
+                    if tmp not in cnt:
+                        cnt[tmp] = 0
+                    else:
+                        cnt[tmp] += 1
+                    stack.append(tmp + str(cnt[tmp]))
+                answer.append("@".join(stack))
+                tmp = ""
+        else:
+            tmp += c
+        if c == ")":
+            stack.pop()
     return ",\n".join(answer) + '\n'
 
 def tree_format(s):
