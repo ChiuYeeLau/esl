@@ -53,7 +53,7 @@ def get_pos_list(message, sentence, pos):
     while i < len(message):
         if message[i] == ' ':
             level = 0
-            while level > 1 or sentence[j] != ')':
+            while level > 0 or sentence[j] != ')':
                 if sentence[j] == '(':
                     level += 1
                     state[0] = 1
