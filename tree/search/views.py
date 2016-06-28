@@ -10,7 +10,7 @@ import os
 
 def hello(request):
     return HttpResponse("hello world")
-
+'''
 def search(request):
     if 'q' in request.GET:
         message = request.GET['q']
@@ -19,7 +19,7 @@ def search(request):
         message = 'Search for a tree'
         strlist = []
     return render_to_response('index.html', {'display': 'result', 'message': message, 'strlist': strlist})
-
+'''
 def search2(request):
     if request.method == 'GET':
         message = request.GET.get('sentence', '')
@@ -46,5 +46,5 @@ def get_tree(request):
             trees = ''
     else:
         trees = ''
-    return HttpResponse(trees)
+    return HttpResponse(json.dumps(trees))
 

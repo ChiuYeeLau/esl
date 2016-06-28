@@ -6,7 +6,7 @@ import re
 import ctypes
 from search.parse import *
 from pymongo import MongoClient
-# client = MongoClient('166.111.139.42')
+#client = MongoClient('166.111.139.42')
 client = MongoClient()
 db = client.test
 db.authenticate('test', 'test')
@@ -14,9 +14,9 @@ cl = db.syntax
 
 #cl = MongoClient('127.0.0.1').local.syntax
 
+'''
 check_serve = ctypes.CDLL('./search/check_serve.so')
 
-'''
 def get_query_disk(message):
     freq = open('studio/request.txt', 'w')
     freq.write(message + '\n')
@@ -26,12 +26,12 @@ def get_query_disk(message):
     strlist = fres.readlines()
     fres.close()
     return strlist
-'''
 
 def extract_list(message):
     p = re.compile('\([^()]*\)')
     mlist = [st[1:-1] for st in p.findall(message) if st[1] != ' ']
     return mlist
+'''
 
 def state_plus(state):
     if state[0] == 1:
@@ -49,9 +49,8 @@ def get_pos_list(message, sentence, pos):
             state_plus(state)
     state[0] = 0
     #print pos, state[1]
-    i = 0
-    while i < len(message):
-        if message[i] == ' ':
+    for c in message:
+        if c == ' ':
             level = 0
             while level > 0 or sentence[j] != ')':
                 if sentence[j] == '(':
@@ -62,41 +61,79 @@ def get_pos_list(message, sentence, pos):
                     state_plus(state)
                 j += 1
             state_plus(state)
-            i += 1
         else:
-            if message[i] == ')':
+            if c == ')':
                 if state[0] == 1:
                     plist.append(state[1])
                     state[1] += 1
                     state[0] = 0
-            elif message[i] == '(':
+            elif c == '(':
                 state[0] = 1
-            i += 1
             j += 1
     return plist
 
-def get_query_db2(tree, message, keys):
+def check_find_j(msg, tokens, sent, tk, j):
+    tmp, tmps = '', ''
+    for c in msg:
+        if j == len(sent):
+            return False
+        if c == ' ':
+            level = 0
+            while level > 0 or j < len(sent) and sent[j] != ')':
+                if sent[j] == '(':
+                    level += 1
+                elif sent[j] == ')':
+                    level -= 1
+                j += 1
+            if j == len(sent):
+                return False
+            tmp = ''
+            tmps = ''
+            continue
+        if c in ('(' ,')'):
+            if sent[j] != c:
+                return False
+            if tmp != '':
+                flag = tmp.isdigit()
+                if flag != tmps.isdigit():
+                    return False
+                if flag and tokens[int(tmp)]['lemma'] != tk[int(tmps)]['l'] or not flag and tmp != tmps:
+                    return False
+            tmp = ''
+            tmps = ''
+            j += 1
+        else:
+            tmp += c
+            while j < len(sent) and sent[j] not in ('(', ')'):
+                tmps += sent[j]
+                j += 1
+    return True
+
+def check_find(msg, tokens, sent, tk):
+    for j in range(len(sent)):
+        if check_find_j(msg, tokens, sent, tk, j):
+            return j
+    return -1
+
+def get_query_db2(tree, msg, tokens, keys):
     keys.sort(key = lambda word: -len(word))
     rs = cl.find({'tokens.l': {'$all': keys}})
     strlist = []
     cnt = 0
-    msg = str(message)
     # print rs.count()
     for sen in rs:
-        #if cnt > 10:
-        #    break
-        sent = str(sen['tree'])
-        tp = check_serve.find(msg, sent)
+        sent = sen['tree0']
+        tk = sen['tokens']
+        tp = check_find(msg, tokens, sent, tk)
         if tp != -1:
             tplist = get_pos_list(msg, sent, tp)
             stplist = [str(ele) for ele in tplist]
             strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist)})
-            #strlist.append((str(sen['sentence']), tplist))
-            #strlist.append(sen['sentence'])
             #print sen['sentence'], tplist
             cnt = cnt + 1
     return strlist
 
+'''
 def get_query_db(message):
     mlist = extract_list(message)
     mlist.sort(key = lambda x: -len(x))
@@ -113,6 +150,7 @@ def get_query_db(message):
             strlist.append(str(sen['sentence']))
             cnt = cnt + 1
     return strlist
+'''
 
 def get_message_cur(tree, key, var):
     ret = ''
@@ -125,17 +163,18 @@ def get_message_cur(tree, key, var):
             if mlist[i] == '':
                 mlist[i] = '( )'
             if len(child.children) == 0:
-                ret = ret + mlist[i]
+                ret += mlist[i]
             elif mlist[i] == '( )':
-                ret = ret + '( )'
+                ret += '( )'
             else:
-                ret = ret + '(%s%s)' % (child.elem, mlist[i])
+                ret += '(%s%s)' % (child.elem, mlist[i])
     elif len(clist) > 0 and tree.depth < var[2]:
         ret = clist[0]
     elif len(tree.children) == 0:
         if var[0] < len(key) and var[1] == key[var[0]]:
+            # ret = '(%s)' % tree.elem
+            ret = '(%d)' % var[1]
             var[0] += 1
-            ret = '(%s)' % tree.elem
         var[1] += 1
     # print ret
     return ret
@@ -166,10 +205,11 @@ def get_message(tree, key):
 def get_parse(sentence):
     rquest = parse(sentence)
     treeBracket = rquest['sentences'][0]['parse']
+    tokens = rquest['sentences'][0]['tokens']
+    tokens_sim = [{'p' : token['pos'], 't' : token['word'], 'l' : token['lemma']} for token in tokens]
     treeS = tree_format(treeBracket)
     treeC = tree_transfer(treeS)
-    # print treeC
-    return treeC
+    return {'tokens' : tokens_sim , 'tree' : treeC}
 
 def get_query_inter(sentence, key):
     # print sentence, key
@@ -186,4 +226,4 @@ def get_query_inter(sentence, key):
 
     msg = get_message(tree_example[0], key)
     print 'msg, keys:', msg, keys
-    return get_query_db2(tree_example[0], msg, keys)
+    return get_query_db2(tree_example[0], msg, tokens, keys)
