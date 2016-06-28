@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.shortcuts import render_to_response
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from search.util import *
 import json
 import sys
@@ -38,13 +38,9 @@ def search2(request):
     #return render_to_response('search.html', {'output': strlist})
 
 def get_tree(request):
+    trees = {}
     if request.method == 'GET':
         message = request.GET.get('tree', '')
         if message != '':
             trees = get_parse(message)
-        else:
-            trees = ''
-    else:
-        trees = ''
-    return HttpResponse(json.dumps(trees))
-
+    return JsonResponse(trees)
