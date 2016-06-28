@@ -21,7 +21,7 @@ if __name__ == '__main__':
     db = MongoClient(addr).test
     db.authenticate('test','test')
     posts = db.syntax
-    bulk = posts.initialize_ordered_bulk_op()
+    bulk = posts.initialize_unordered_bulk_op()
 
     cnt = 0
     for sen in posts.find():
@@ -49,11 +49,14 @@ if __name__ == '__main__':
 
         bulk.find({'_id': sen['_id']}).update({'$set':{'tree0': ntr}})
         cnt += 1
-        if cnt % 1000 == 0:
+        if cnt % 5000 == 0:
             print cnt
+        if cnt % 100000 == 0:
+            result = bulk.execute()
+            pprint(result)
+            bulk = posts.initialize_unordered_bulk_op()
 
     result = bulk.execute()
     pprint(result)
 
     db.logout()
-

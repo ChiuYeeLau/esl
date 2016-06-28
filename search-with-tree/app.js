@@ -36,7 +36,7 @@ var main = function()
           //  console.log((post1[i].length * 15).toString() + "px");
             //
         }
-   //     $('.status-box').val('');
+        // $('.status-box').val('');
     });
 
     $('.btn-submit').click(function(){
@@ -45,60 +45,71 @@ var main = function()
         var word_pos = "";
         var i = 0;
         $(".word").each(function(){
-            if($(this).attr("class") == "word active")
-                {  word_pos = word_pos + (i + " ");  }
+            if($(this).attr("class") == "word active") {
+                word_pos = word_pos + (i + " ");
+            }
             i++;
-        })
+        });
         if (!word_pos) {
             alert('No keywords selected');
             return;
         }
 
-    //    console.log(sentence);
-    //    console.log(word_pos);
+        // console.log(sentence);
+        // console.log(word_pos);
         $.getJSON("http://" + hostAddr + "/search2/", {"sentence":sentence, "word_pos":word_pos}, 
             function(data){
                 // console.log(data);
-                //    r = $.map(data, function (item) { return item.sentence + '<br>' });
-                //    $('.output').html(r);
-                //        data = [{ list:"0 2 3",  sentence:"a b c d e"},  { list:"2 3",  sentence:"0 1 2 3 4 5 6 7 8 9 10"}];
+                // r = $.map(data, function (item) { return item.sentence + '<br>' });
+                // $('.output').html(r);
+                //     data = [{ list:"0 2 3",  sentence:"a b c d e"},  { list:"2 3",  sentence:"0 1 2 3 4 5 6 7 8 9 10"}];
                 var answer = "", words = [], pos = [];
-                for(var o in data)
-                {
+                for(var o in data) {
                     words = data[o].sentence.split(' ');
                     pos = data[o].list.split(' ');
-                    for(var i in pos)
-                    {
+                    for(var i in pos) {
                         words[pos[i]] = "<span>" + words[pos[i]] + "</span>";
                     }
                     words = words.join(' ');
                     answer += "<li class=\"sentence\">" + words + "</li>";
                 }
-            //     console.log(answer)
-            //     r = $.map(data, function (item) { return item.sentence + '<br>' }); 
-   
+                // console.log(answer)
+                // r = $.map(data, function (item) { return item.sentence + '<br>' }); 
                 $('.output').html(answer);
                 $btn.button('reset');
             });
-
-
-
-
-
        // $('.status-box').val('');
-    })
-    
+    });
+
+    var ajaxTimer;
+    function onInputChange() {
+        // delayed call
+        if (ajaxTimer) {
+            clearTimeout(ajaxTimer);
+        }
+        ajaxTimer = setTimeout(function() {
+            console.log($('.status-box').val());
+            $('.btn-post').click();
+        }, 500);
+    }
+    onInputChange();
+
+    var area = $('.status-box')[0]
+    if (area.addEventListener) {
+        area.addEventListener('input', onInputChange, false);
+    } else if (area.attachEvent) {
+        area.attachEvent('onpropertychange', onInputChange);
+    }
+
 
     document.ismousedown = false;
     $('div').on('mousedown','.word', function(){
-            document.ismousedown =true;
-            if(!$(this).hasClass("active"))
-                { $(this).addClass("active"); }
-            else { $(this).removeClass("active"); }
-          //  console.log($(this).hasClass("active"));
-
-        });
-
+        document.ismousedown =true;
+        if(!$(this).hasClass("active"))
+            { $(this).addClass("active"); }
+        else { $(this).removeClass("active"); }
+        // console.log($(this).hasClass("active"));
+    });
 
     $('div').on('mouseover','.word', function(){ 
             if(document.ismousedown){
