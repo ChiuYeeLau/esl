@@ -69,8 +69,20 @@ def get_pos_list(message, sentence, pos):
                     state[0] = 0
             elif c == '(':
                 state[0] = 1
-            j += 1
+            if c in ('(', ')'):
+                j += 1
+            else:
+                while sentence[j] not in ('(', ')'):
+                    j += 1
     return plist
+
+def getq(tmp):
+    return tmp if len(tmp) < 2 else tmp[:2]
+
+def check_equal(tmp, tmps):
+    str1 = tmp if len(tmp) < 2 else tmp[:2]
+    str2 = tmps if len(tmps) < 2 else tmps[:2]
+    return str1 == str2
 
 def check_find_j(msg, tokens, sent, tk, j):
     tmp, tmps = '', ''
@@ -97,7 +109,9 @@ def check_find_j(msg, tokens, sent, tk, j):
                 flag = tmp.isdigit()
                 if flag != tmps.isdigit():
                     return False
-                if flag and tokens[int(tmp)]['lemma'] != tk[int(tmps)]['l'] or not flag and tmp != tmps:
+                if flag and tokens[int(tmp)]['lemma'] != tk[int(tmps)]['l']:
+                    return False
+                if not flag and not check_equal(tmp, tmps):
                     return False
             tmp = ''
             tmps = ''
@@ -116,11 +130,10 @@ def check_find(msg, tokens, sent, tk):
     return -1
 
 def get_query_db2(tree, msg, tokens, keys):
-    keys.sort(key = lambda word: -len(word))
-    rs = cl.find({'tokens.l': {'$all': keys}})
+    keys.sort(key = lambda word: -len(word['$elemMatch']['l']))
+    rs = cl.find({'tokens': {'$all': keys}})
     strlist = []
     cnt = 0
-    # print rs.count()
     for sen in rs:
         sent = sen['tree0']
         tk = sen['tokens']
@@ -218,7 +231,7 @@ def get_query_inter(sentence, key):
     tokens = rquest['sentences'][0]['tokens']
     keys = []
     for k in key:
-        keys.append(tokens[k]['lemma'])
+        keys.append({'$elemMatch' : {'l' : tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}})
     # print treeBracket
     treeS = tree_format(treeBracket)
     # print treeS
