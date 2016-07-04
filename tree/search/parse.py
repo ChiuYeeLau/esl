@@ -40,24 +40,52 @@ def tree_structure_to_json(root):
                 else:
                     print "]}"
 
-def transfer_Node(text):
+def transfer_Node_i(text):
     level = 0
-    tree_group = []
-    i = 0
+    tree = Node("_ROOT_")
+    root = tree
+    num = 0
     word = ""
     for c in text:
         if level == 0:
-            tree_group.append(Node("@"))
-            root = tree_group[i]
-            i += 1
+            tree.children.append(Node("@"))
+            root = tree.children[-1]
         if c == '(':
             level += 1
             if word:
                 root.elem = word
                 word = ""
-            root.children.append(Node(word, root, level))
-            len_children = len(root.children)
-            root = root.children[len_children - 1]
+            p = Node(word, root, level)
+            root.children.append(p)
+            root = p
+        elif c == ')':
+            level -= 1
+            if word:
+                root.elem = str(num)
+                num += 1
+                word = ""
+            root = root.parent
+        else:
+            word += c
+    return tree.children[0]
+
+def transfer_Node(text):
+    level = 0
+    tree = Node("_ROOT_")
+    root = tree
+    word = ""
+    for c in text:
+        if level == 0:
+            tree.children.append(Node("@"))
+            root = tree.children[-1]
+        if c == '(':
+            level += 1
+            if word:
+                root.elem = word
+                word = ""
+            p = Node(word, root, level)
+            root.children.append(p)
+            root = p
         elif c == ')':
             level -= 1
             if word:
@@ -66,7 +94,7 @@ def transfer_Node(text):
             root = root.parent
         else:
             word += c
-    return tree_group
+    return tree.children[0]
 
 def tree_transfer(text):
     '''

@@ -235,8 +235,8 @@ def get_query_inter(sentence, key):
     # print treeBracket
     treeS = tree_format(treeBracket)
     # print treeS
-    tree_example = transfer_Node(treeS)
+    tree = transfer_Node(treeS)
 
-    msg = get_message(tree_example[0], key)
+    msg = get_message(tree, key)
     print 'msg, keys:', msg, keys
-    return get_query_db2(tree_example[0], msg, tokens, keys)
+    return get_query_db2(tree, msg, tokens, keys)
