@@ -28,7 +28,7 @@ class QtreeFinder(object):
                         elem[1] += e[1]
                         flag = True
                         break
-                if not flag:
+                if not flag and (c1[i].elem.isdigit() or not check_equal(c1[i].elem, c2[i].elem)):
                     return False
             else:
                 if not check_equal(c1[i].elem, c2[i].elem):
@@ -54,6 +54,7 @@ class QtreeFinder(object):
         else:
             lm = self.tk[int(qtree.elem)]['l']
             if lm in self.keyNode:
+                # print self.tk[int(qtree.elem)]
                 qtree.match = [[node, [int(qtree.elem)]] for node in self.keyNode[lm]]
         if hasattr(qtree, 'match'):
             for e in qtree.match:
@@ -70,20 +71,27 @@ def check_find(keyNode, qtree, tk, cnt):
 def get_qtree_db(tree, tokens, keyNode, keys, cnt):
     keys.sort(key = lambda word: -len(word['$elemMatch']['l']))
     rs = cl.find({'tokens': {'$all': keys}})
-    retJson = {'result':[], 'desc':{}}
+    retJson = {'result':[], 'desc':{'sim':[]}}
     strlist = retJson['result']
-    simset = set()
+    simdict = retJson['desc']['sim']
     for sen in rs:
         sent = sen['tree0']
         tk = sen['tokens']
+        # print sen['sentence']
         qtree = transfer_Node_i(sent)
         tp = check_find(keyNode, qtree, tk, cnt)
         if len(tp.result) != 0:
             stplist = [str(ele) for ele in tp.resultList]
             strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist), 'sim': len(tp.result)})
-            simset.add(len(tp.result))
+            l = len(tp.result)
+            flag = False
+            for sim in simdict:
+                if sim['id'] == l:
+                    sim['count'] += 1
+                    flag = True
+            if not flag:
+                simdict.append({'id': l, 'count': 1, 'title': 'similarity %d' % l})
             #print sen['sentence'], tplist
-    retJson['desc']['sim'] = list(simset)
     return retJson
 
 def key_Node(tree, key, tokens):

@@ -132,7 +132,8 @@ def check_find(msg, tokens, sent, tk):
 def get_query_db2(tree, msg, tokens, keys):
     keys.sort(key = lambda word: -len(word['$elemMatch']['l']))
     rs = cl.find({'tokens': {'$all': keys}})
-    strlist = []
+    retJson = {'result':[], 'desc':{}}
+    strlist = retJson['result']
     cnt = 0
     for sen in rs:
         sent = sen['tree0']
@@ -144,7 +145,7 @@ def get_query_db2(tree, msg, tokens, keys):
             strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist)})
             #print sen['sentence'], tplist
             cnt = cnt + 1
-    return strlist
+    return retJson
 
 '''
 def get_query_db(message):

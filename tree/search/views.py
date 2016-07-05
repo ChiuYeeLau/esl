@@ -3,7 +3,6 @@
 from django.http import HttpResponse, JsonResponse
 from search.util import get_query_inter, get_parse
 from search.qtree import get_qtree_inter
-import json
 
 # Create your views here.
 
@@ -31,14 +30,13 @@ def search2(request):
         if message != '':
             strlist = get_query_inter(message, key)
         else:
-            strlist = []
+            strlist = {}
     else:
-        strlist = []
+        strlist = {}
     # message = 'a computer database'
     # key = [0, 1, 2]
     # strlist = get_query_inter(message, key)
-    return HttpResponse(json.dumps(strlist))
-    # return render_to_response('search.html', {'output': strlist})
+    return JsonResponse(strlist)
 
 
 def search3(request):

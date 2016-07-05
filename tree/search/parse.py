@@ -1,9 +1,8 @@
 import requests
-import json
-
 
 # NLP_SERVER = '166.111.139.15:9000'
 NLP_SERVER = 'localhost:9000'
+
 
 class Node(object):
     def __init__(self, elem="", parent=None, depth=-1):
@@ -13,9 +12,11 @@ class Node(object):
         self.size = 1
         self.depth = depth
 
+
 class Tree(object):
     def __init__(self):
         self.root = Node()
+
 
 def tree_structure_to_json(root):
     if root.elem == "":
@@ -39,6 +40,7 @@ def tree_structure_to_json(root):
                     print ","
                 else:
                     print "]}"
+
 
 def transfer_Node_i(text):
     level = 0
@@ -69,6 +71,7 @@ def transfer_Node_i(text):
             word += c
     return tree.children[0]
 
+
 def transfer_Node(text):
     level = 0
     tree = Node("_ROOT_")
@@ -95,6 +98,7 @@ def transfer_Node(text):
         else:
             word += c
     return tree.children[0]
+
 
 def tree_transfer(text):
     '''
@@ -154,6 +158,7 @@ def tree_transfer(text):
             stack.pop()
     return ",\n".join(answer) + '\n'
 
+
 def tree_format(s):
     state = 0
     q = []
@@ -175,6 +180,7 @@ def tree_format(s):
             q.append(c)
 
     return ''.join(q)
+
 
 def parse(s):
     r = requests.post('http://' + NLP_SERVER + '/?properties%3d%7b%22annotators%22%3a%22tokenize%2cssplit%2cpos%2clemma%2cparse%22%2c%22outputFormat%22%3a%22json%22%7d%0a', data=s)
