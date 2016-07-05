@@ -13,6 +13,7 @@ class QtreeFinder(object):
     def __init__(self, keyNode, tk, cnt):
         self.result = []
         self.resultList = []
+        self.resultSent = ""
         self.keyNode = keyNode
         self.tk = tk
         self.cnt = cnt
@@ -60,8 +61,21 @@ class QtreeFinder(object):
             for e in qtree.match:
                 if len(e[1]) == self.cnt:
                     self.result.append(e[0])
-                    self.resultList = e[1]
+                    if not self.resultList:
+                        self.resultList = e[1]
+                        tks = [self.tk[i]['l'] for i in range(e[1][0], e[1][-1] + 1)]
+                        self.resultSent = ' '.join(tks)
                     break
+
+def addCluster(retDict, retId, title):
+    flag = False
+    for desc in retDict:
+        if desc['id'] == retId:
+            desc['count'] += 1
+            flag = True
+    if not flag:
+        retDict.append({'id': retId, 'count': 1, 'title': title})
+
 
 def check_find(keyNode, qtree, tk, cnt):
     qtreeFinder = QtreeFinder(keyNode, tk, cnt)
@@ -71,27 +85,26 @@ def check_find(keyNode, qtree, tk, cnt):
 def get_qtree_db(tree, tokens, keyNode, keys, cnt):
     keys.sort(key = lambda word: -len(word['$elemMatch']['l']))
     rs = cl.find({'tokens': {'$all': keys}})
-    retJson = {'result':[], 'desc':{'sim':[]}}
+    # retJson = {'result':[], 'desc':{'sim':[], 'sen':[]}}
+    retJson = {'result':[], 'desc':{'sen':[]}}
     strlist = retJson['result']
-    simdict = retJson['desc']['sim']
+    # simdict = retJson['desc']['sim']
+    senmap = {}
+    sendict = retJson['desc']['sen']
     for sen in rs:
         sent = sen['tree0']
         tk = sen['tokens']
-        # print sen['sentence']
         qtree = transfer_Node_i(sent)
         tp = check_find(keyNode, qtree, tk, cnt)
         if len(tp.result) != 0:
+            # l = len(tp.result)
+            # addCluster(simdict, l, 'similarity %d' % l)
+            if tp.resultSent not in senmap:
+                senmap[tp.resultSent] = len(senmap)
+            senId = senmap[tp.resultSent]
+            addCluster(sendict, senId, tp.resultSent)
             stplist = [str(ele) for ele in tp.resultList]
-            strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist), 'sim': len(tp.result)})
-            l = len(tp.result)
-            flag = False
-            for sim in simdict:
-                if sim['id'] == l:
-                    sim['count'] += 1
-                    flag = True
-            if not flag:
-                simdict.append({'id': l, 'count': 1, 'title': 'similarity %d' % l})
-            #print sen['sentence'], tplist
+            strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist), 'sen': senId})
     return retJson
 
 def key_Node(tree, key, tokens):
