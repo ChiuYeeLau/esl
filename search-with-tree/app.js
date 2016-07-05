@@ -13,7 +13,6 @@ $(document).ready(function() {
     });
 
     $('.btn-submit').click(function(){
-        var $btn = $(this).button('loading');
         var sentence = $('.status-box').val();
         var word_pos = "";
         var i = 0;
@@ -27,20 +26,23 @@ $(document).ready(function() {
             alert('No keywords selected');
             return;
         }
+        var $btn = $(this).button('loading');
 
         // console.log(sentence);
         // console.log(word_pos);
-        $.getJSON("http://" + hostAddr + "/search2/", {"sentence":sentence, "word_pos":word_pos}, 
+        $.getJSON("http://" + hostAddr + $(this).attr('data-url'), {"sentence":sentence, "word_pos":word_pos}, 
             function(data){
                 // console.log(data);
                 // r = $.map(data, function (item) { return item.sentence + '<br>' });
                 // $('.output').html(r);
                 //     data = [{ list:"0 2 3",  sentence:"a b c d e"},  { list:"2 3",  sentence:"0 1 2 3 4 5 6 7 8 9 10"}];
+                data = data.result;
+                $('.num-results').text(data.length);
                 var answer = "", words = [], pos = [];
-                for(var o in data) {
+                for(var o = 0; o < data.length; o++) {
                     words = data[o].sentence.split(' ');
                     pos = data[o].list.split(' ');
-                    for(var i in pos) {
+                    for(var i = 0; i < pos.length; i++) {
                         words[pos[i]] = "<span>" + words[pos[i]] + "</span>";
                     }
                     words = words.join(' ');
