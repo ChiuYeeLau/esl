@@ -2,14 +2,14 @@
 var hostAddr = 'esldownloader1.cloudapp.net:8000';
 
 $(document).ready(function() {
+    $('.btn-reset').click(function() {
+        $('div.word').removeClass('active');
+    });
+
     $('.btn-post').click(function() {
-
         document.treenumber=true;
-
         $('.tree').empty();
-        // jQuery.getScript("./parse_tree.js");
         parse_tree();
-        // $('.status-box').val('');
     });
 
     $('.btn-submit').click(function(){
@@ -28,29 +28,21 @@ $(document).ready(function() {
         }
         var $btn = $(this).button('loading');
 
-        // console.log(sentence);
-        // console.log(word_pos);
         $.getJSON("http://" + hostAddr + $(this).attr('data-url'), {"sentence":sentence, "word_pos":word_pos}, 
             function(data){
-                // console.log(data);
-                // r = $.map(data, function (item) { return item.sentence + '<br>' });
-                // $('.output').html(r);
-                //     data = [{ list:"0 2 3",  sentence:"a b c d e"},  { list:"2 3",  sentence:"0 1 2 3 4 5 6 7 8 9 10"}];
-                data = data.result;
-                $('.num-results').text(data.length);
-                var answer = "", words = [], pos = [];
-                for(var o = 0; o < data.length; o++) {
-                    words = data[o].sentence.split(' ');
-                    pos = data[o].list.split(' ');
-                    for(var i = 0; i < pos.length; i++) {
-                        words[pos[i]] = "<span>" + words[pos[i]] + "</span>";
-                    }
-                    words = words.join(' ');
-                    answer += "<li class=\"sentence\">" + words + "</li>";
-                }
-                // console.log(answer)
-                // r = $.map(data, function (item) { return item.sentence + '<br>' }); 
-                $('.output').html(answer);
+                $('.num-results').text(data.result.length);
+                $('.output').empty();
+                $(data.desc.sen).each(function(_, g) {
+                    $('<li>').html(g.title + ' (' + g.count + ')').append($('<ul class="sentence-group">').attr('data-id', g.id)).appendTo('.output');
+                });
+                $(data.result).each(function(_, r) {
+                    var words = r.sentence.split(' '),
+                        pos = r.list.split(' ');
+                    $(pos).each(function(_, p) {
+                        words[Number(p)] = '<span>' + words[Number(p)] + '</span>';
+                    });
+                    $('<li class="sentence">').html(words.join(' ')).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
+                });
                 $btn.button('reset');
             });
        // $('.status-box').val('');
