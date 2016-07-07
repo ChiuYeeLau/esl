@@ -35,16 +35,19 @@ class QtreeFinder(object):
                     return False
                 if not check_equal(c1[i].elem, c2[i].elem):
                     return False
-                # else:
-                #    c2[i].match = []
         return True
 
-    def get_result(self, qtree, depth=0):
-        for child in qtree.children:
-            if depth == 0 and len(child.match) > 0:
-                self.get_result(child, depth)
+    def get_result(self, qtree, mtree, depth=0):
+        for i, child in enumerate(qtree.children):
+            flag = False
+            if depth == 0:
+                for e in child.match:
+                    if mtree.children[i] is e[0]:
+                        flag = True
+            if flag:
+                self.get_result(child, mtree.children[i], depth)
             else:
-                self.get_result(child, depth + 1)
+                self.get_result(child, None, depth + 1)
         if len(qtree.children) == 0:
             el = int(qtree.elem)
             if depth == 0:
@@ -53,6 +56,16 @@ class QtreeFinder(object):
                 self.resultSent2 += self.tk[el]['l'] + ' '
         if depth == 2 and len(qtree.children) > 0:
             self.resultSent2 += qtree.elem + ' '
+
+    def add_result(self, qtree, e):
+        self.result.append(e[0])
+        if not self.resultList:
+            self.get_result(qtree, e[0])
+            self.resultSent2 = self.resultSent2[:-1]
+            resultSent = []
+            for i in range(self.resultList[0], self.resultList[-1] + 1):
+                resultSent.append(self.tk[i]['l'])
+            self.resultSent = ' '.join(resultSent)
 
     def recur_check(self, qtree):
         qtree.match = []
@@ -75,14 +88,7 @@ class QtreeFinder(object):
                 qtree.match = [[node, 1] for node in self.keyNode[lm]]
         for e in qtree.match:
             if e[1] == self.cnt:
-                self.result.append(e[0])
-                if not self.resultList:
-                    self.get_result(qtree)
-                    self.resultSent2 = self.resultSent2[:-1]
-                    resultSent = []
-                    for i in range(self.resultList[0], self.resultList[-1] + 1):
-                        resultSent.append(self.tk[i]['l'])
-                    self.resultSent = ' '.join(resultSent)
+                self.add_result(qtree, e)
                 break
 
     def debug(self, qtree, depth=0):
