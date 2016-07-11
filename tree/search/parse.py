@@ -46,8 +46,8 @@ def transfer_Node_i(text):
     level = 0
     tree = Node("_ROOT_")
     root = tree
-    num = 0
     word = ""
+    leaflist = []
     for c in text:
         if level == 0:
             tree.children.append(Node("@"))
@@ -63,13 +63,13 @@ def transfer_Node_i(text):
         elif c == ')':
             level -= 1
             if word:
-                root.elem = str(num)
-                num += 1
+                root.elem = len(leaflist)
+                leaflist.append(root)
                 word = ""
             root = root.parent
         else:
             word += c
-    return tree.children[0]
+    return (tree.children[0], leaflist)
 
 
 def transfer_Node(text):

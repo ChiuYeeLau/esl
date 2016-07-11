@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+from itertools import product, imap
 from search.parse import transfer_Node_i, parse, tree_format
 from search.util import getq, check_equal
 from pymongo import MongoClient
@@ -11,85 +12,64 @@ cl = db.syntax
 
 
 class QtreeFinder(object):
-    def __init__(self, keyNode, tk, cnt):
-        self.result = []
-        self.resultList = []
+    def __init__(self, tree, key, qtree, qkey, tk):
+        self.result = None
         self.resultSent = ""
         self.resultSent2 = ""
-        self.keyNode = keyNode
+        self.nodeList = []
+        self.tree = tree
+        self.key = key
+        self.qtree = qtree
+        self.qkey = qkey
         self.tk = tk
-        self.cnt = cnt
 
-    def check_point(self, c1, c2, elem):
+    def check_point(self, n1, n2, lt, lq):
+        if not check_equal(n1.elem, n2.elem):
+            return False
+        c1, c2 = n1.children, n2.children
         if len(c1) != len(c2):
             return False
-        for i in range(len(c1)):
-            flag = False
-            for e in c2[i].match:
-                if c1[i] is e[0]:
-                    elem[1] += e[1]
-                    flag = True
-                    break
-            if not flag:
-                if c1[i].elem.isdigit():
-                    return False
-                if not check_equal(c1[i].elem, c2[i].elem):
-                    return False
+        for cc1, cc2 in imap(None, c1, c2):
+            p1, p2 = cc1 in lt, cc2 in lq
+            if p1 != p2:
+                return False
+            if not p1 and not check_equal(cc1.elem, cc2.elem):
+                return False
         return True
 
-    def get_result(self, qtree, mtree, depth=0):
-        for i, child in enumerate(qtree.children):
-            flag = False
-            if depth == 0:
-                for e in child.match:
-                    if mtree.children[i] is e[0]:
-                        flag = True
-            if flag:
-                self.get_result(child, mtree.children[i], depth)
-            else:
-                self.get_result(child, None, depth + 1)
-        if len(qtree.children) == 0:
-            el = int(qtree.elem)
-            if depth == 0:
-                self.resultList.append(el)
-            if depth <= 2:
-                self.resultSent2 += self.tk[el]['l'] + ' '
-        if depth == 2 and len(qtree.children) > 0:
-            self.resultSent2 += qtree.elem + ' '
+    def get_result(self):
+        listt = [self.tree[1][i] for i in self.key]
+        listq = [self.qtree[1][i] for i in self.qkey]
+        self.nodeList = listq[:]
+        tqd = listt[0].depth - listq[0].depth
+        if not reduce(lambda x, y: x and (y[0].depth - y[1].depth == tqd), imap(None, listt, listq), True):
+            return
+        while len(listt) > 1:
+            nodet = reduce(lambda x, y: x if x.depth > y.depth else y, listt, listt[0]).parent
+            nodeq = reduce(lambda x, y: x if x.depth > y.depth else y, listq, listq[0]).parent
+            if not self.check_point(nodet, nodeq, listt, listq):
+                return False
+            listt = [x for x in listt if x.parent is not nodet] + [nodet]
+            listq = [x for x in listq if x.parent is not nodeq] + [nodeq]
+            self.nodeList.append(nodeq)
 
-    def add_result(self, qtree, e):
-        self.result.append(e[0])
-        if not self.resultList:
-            self.get_result(qtree, e[0])
-            self.resultSent2 = self.resultSent2[:-1]
-            resultSent = []
-            for i in range(self.resultList[0], self.resultList[-1] + 1):
-                resultSent.append(self.tk[i]['l'])
-            self.resultSent = ' '.join(resultSent)
+        self.add_result(listq[0])
 
-    def recur_check(self, qtree):
-        qtree.match = []
+    def get_more_result(self, qtree, depth=0):
+        if not qtree.children:
+            self.resultSent2 += self.tk[int(qtree.elem)]['l'] + ' '
+        elif depth == 2:
+            self.resultSent2 += qtree.elem
+            return
+
         for child in qtree.children:
-            self.recur_check(child)
-        if len(qtree.children) > 0:
-            match = set()
-            for child in qtree.children:
-                for e in child.match:
-                    if e[0].parent is not None:
-                        match.add(e[0].parent)
-            for e in match:
-                matchElem = [e, 0]
-                if self.check_point(e.children, qtree.children, matchElem):
-                    qtree.match.append(matchElem)
-        else:
-            lm = self.tk[int(qtree.elem)]['l']
-            if lm in self.keyNode:
-                # print self.tk[int(qtree.elem)]
-                qtree.match = [[node, 1] for node in self.keyNode[lm]]
-        for e in qtree.match:
-            if e[1] == self.cnt:
-                self.add_result(qtree, e)
-                break
+            self.get_more_result(child, depth if depth == 0 and child in self.nodeList else depth + 1)
+
+    def add_result(self, qtree):
+        self.result = qtree
+        self.get_more_result(qtree)
+        self.resultSent2 = self.resultSent2[:-1]
+        self.resultSent = ' '.join([self.tk[i]['l'] for i in range(self.qkey[0], self.qkey[-1] + 1)])
 
     def debug(self, qtree, depth=0):
         print '\t' * depth + qtree.elem
@@ -111,14 +91,29 @@ def addCluster(inMap, retList, title):
     return retId
 
 
-def check_find(keyNode, qtree, tk, cnt):
-    qtreeFinder = QtreeFinder(keyNode, tk, cnt)
-    # qtreeFinder.debug(qtree)
-    qtreeFinder.recur_check(qtree)
-    return qtreeFinder
+def check_find(tree, key, tokens, qtree, tk):
+    iterlists = []
+    for k in key:
+        iterlist = []
+        for i, t in enumerate(tk):
+            if tokens[k]['lemma'] == t['l']:
+                iterlist.append(i)
+        iterlists.append(iterlist)
+
+    for qkey in product(*iterlists):
+        if reduce(lambda x, y: (x[0] and x[1] < y, y), qkey, (True, -1))[0]:
+            qtreeFinder = QtreeFinder(tree, key, qtree, qkey, tk)
+            qtreeFinder.get_result()
+            if qtreeFinder.result:
+                return qtreeFinder
+
+    return None
 
 
-def get_qtree_db(tree, tokens, keyNode, keys, cnt):
+def get_qtree_db(tree, tokens, key):
+    keys = []
+    for k in key:
+        keys.append({'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}})
     keys.sort(key=lambda word: -len(word['$elemMatch']['l']))
     rs = cl.find({'tokens': {'$all': keys}})
 
@@ -134,12 +129,12 @@ def get_qtree_db(tree, tokens, keyNode, keys, cnt):
         sent = sen['tree0']
         tk = sen['tokens']
         qtree = transfer_Node_i(sent)
-        tp = check_find(keyNode, qtree, tk, cnt)
-        if len(tp.result) != 0:
+        tp = check_find(tree, key, tokens, qtree, tk)
+        if tp:
             # senId = addCluster(senmap, senlist, tp.resultSent)
             senId2 = addCluster(senmap2, senlist2, tp.resultSent2)
 
-            stplist = [str(ele) for ele in tp.resultList]
+            stplist = [str(ele) for ele in tp.qkey]
             resultDict = {'sentence': sen['sentence'], 'list': ' '.join(stplist), 'sen': senId2}
 
             strlist.append(resultDict)
@@ -147,35 +142,14 @@ def get_qtree_db(tree, tokens, keyNode, keys, cnt):
     return retJson
 
 
-def key_Node(tree, key, tokens):
-    keyNode = {}
-    i = 0
-    queue = [tree]
-    while i < len(queue):
-        p = queue[i]
-        for child in p.children:
-            queue.append(child)
-        if len(p.children) == 0 and int(p.elem) in key:
-            lm = tokens[int(p.elem)]['lemma']
-            if lm not in keyNode:
-                keyNode[lm] = []
-            keyNode[lm].append(p)
-        i += 1
-    return keyNode
-
-
 def get_qtree_inter(sentence, key):
     # print sentence, key
     rquest = parse(sentence)
     treeBracket = rquest['sentences'][0]['parse']
     tokens = rquest['sentences'][0]['tokens']
-    keys = []
-    for k in key:
-        keys.append({'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}})
     # print treeBracket
     treeS = tree_format(treeBracket)
     # print treeS
     tree = transfer_Node_i(treeS)
-    keyNode = key_Node(tree, key, tokens)
 
-    return get_qtree_db(tree, tokens, keyNode, keys, len(key))
+    return get_qtree_db(tree, tokens, key)
