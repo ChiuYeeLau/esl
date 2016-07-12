@@ -39,13 +39,13 @@ def search2(request):
     return JsonResponse(strlist)
 
 
-def search3(request):
+def search3(request, ctype):
     if request.method == 'GET':
         message = request.GET.get('sentence', '')
         keys = request.GET.get('word_pos', '')
         key = [int(ele) for ele in keys.split(' ') if len(ele) > 0]
         if message != '':
-            strlist = get_qtree_inter(message, key)
+            strlist = get_qtree_inter(message, key, ctype)
         else:
             strlist = {}
     else:

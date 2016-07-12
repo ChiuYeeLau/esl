@@ -12,32 +12,55 @@ cl = db.syntax
 
 
 class QtreeFinder(object):
-    def __init__(self, tree, key, qtree, qkey, tk):
+    def __init__(self, tree, key, qtree, qkey, tk, ctype=0):
         self.result = None
         self.resultSent = ""
         self.resultSent2 = ""
+        self.cost = 0
         self.nodeList = []
         self.tree = tree
         self.key = key
         self.qtree = qtree
         self.qkey = qkey
         self.tk = tk
+        self.ctype = ctype
 
     def check_point(self, n1, n2, lt, lq):
         if not check_equal(n1.elem, n2.elem):
             return False
         c1, c2 = n1.children, n2.children
-        if len(c1) != len(c2):
-            return False
-        for cc1, cc2 in imap(None, c1, c2):
-            p1, p2 = cc1 in lt, cc2 in lq
-            if p1 != p2:
+        if self.ctype == 0:
+            if len(c1) != len(c2):
                 return False
-            if not p1 and not check_equal(cc1.elem, cc2.elem):
+            for cc1, cc2 in imap(None, c1, c2):
+                p1, p2 = cc1 in lt, cc2 in lq
+                if p1 != p2:
+                    return False
+                if not p1 and not check_equal(cc1.elem, cc2.elem):
+                    return False
+        else:
+            ltc, lqc = [], []
+            for cc1 in c1:
+                if cc1 in lt:
+                    ltc.append(lt.index(cc1))
+            for cc2 in c2:
+                if cc2 in lq:
+                    lqc.append(lq.index(cc2))
+            if cmp(ltc, lqc) != 0:
                 return False
         return True
 
     def get_result(self):
+        if self.ctype == 2:
+            listq = [self.qtree[1][i] for i in self.qkey]
+            self.nodeList = listq[:]
+            while len(listq) > 1:
+                nodeq = reduce(lambda x, y: x if x.depth > y.depth else y, listq, listq[0]).parent
+                listq = [x for x in listq if x.parent is not nodeq] + [nodeq]
+                self.nodeList.append(nodeq)
+            self.add_result(listq[0])
+            return
+
         listt = [self.tree[1][i] for i in self.key]
         listq = [self.qtree[1][i] for i in self.qkey]
         self.nodeList = listq[:]
@@ -57,8 +80,10 @@ class QtreeFinder(object):
 
     def get_more_result(self, qtree, depth=0):
         if not qtree.children:
+            self.cost += 1
             self.resultSent2 += self.tk[int(qtree.elem)]['l'] + ' '
         elif depth == 2:
+            self.cost += 1
             self.resultSent2 += qtree.elem
             return
 
@@ -91,7 +116,7 @@ def addCluster(inMap, retList, title):
     return retId
 
 
-def check_find(tree, key, tokens, qtree, tk):
+def check_find(tree, key, tokens, qtree, tk, ctype):
     iterlists = []
     for k in key:
         iterlist = []
@@ -100,22 +125,30 @@ def check_find(tree, key, tokens, qtree, tk):
                 iterlist.append(i)
         iterlists.append(iterlist)
 
+    retFinder = None
+
     for qkey in product(*iterlists):
         if reduce(lambda x, y: (x[0] and x[1] < y, y), qkey, (True, -1))[0]:
-            qtreeFinder = QtreeFinder(tree, key, qtree, qkey, tk)
+            qtreeFinder = QtreeFinder(tree, key, qtree, qkey, tk, ctype)
             qtreeFinder.get_result()
-            if qtreeFinder.result:
-                return qtreeFinder
+            if ctype != 2 and qtreeFinder.result:
+                retFinder = qtreeFinder
+                break
+            if ctype == 2 and (not retFinder or qtreeFinder.cost < retFinder.cost):
+                retFinder = qtreeFinder
 
-    return None
+    return retFinder
 
 
-def get_qtree_db(tree, tokens, key):
-    keys = []
-    for k in key:
-        keys.append({'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}})
-    keys.sort(key=lambda word: -len(word['$elemMatch']['l']))
-    rs = cl.find({'tokens': {'$all': keys}})
+def get_qtree_db(tree, tokens, key, ctype):
+    if ctype == 2:
+        keys = [tokens[k]['lemma'] for k in key]
+        keys.sort(key=lambda word: -len(word))
+        rs = cl.find({'tokens.l': {'$all': keys}})
+    else:
+        keys = [{'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}} for k in key]
+        keys.sort(key=lambda word: -len(word['$elemMatch']['l']))
+        rs = cl.find({'tokens': {'$all': keys}})
 
     # retJson = {'result': [], 'desc': {'sen': []}}
     # senmap = {}
@@ -129,7 +162,7 @@ def get_qtree_db(tree, tokens, key):
         sent = sen['tree0']
         tk = sen['tokens']
         qtree = transfer_Node_i(sent)
-        tp = check_find(tree, key, tokens, qtree, tk)
+        tp = check_find(tree, key, tokens, qtree, tk, ctype)
         if tp:
             # senId = addCluster(senmap, senlist, tp.resultSent)
             senId2 = addCluster(senmap2, senlist2, tp.resultSent2)
@@ -142,14 +175,15 @@ def get_qtree_db(tree, tokens, key):
     return retJson
 
 
-def get_qtree_inter(sentence, key):
+def get_qtree_inter(sentence, key, ctype):
     # print sentence, key
     rquest = parse(sentence)
-    treeBracket = rquest['sentences'][0]['parse']
     tokens = rquest['sentences'][0]['tokens']
+
+    treeBracket = rquest['sentences'][0]['parse']
     # print treeBracket
     treeS = tree_format(treeBracket)
     # print treeS
     tree = transfer_Node_i(treeS)
 
-    return get_qtree_db(tree, tokens, key)
+    return get_qtree_db(tree, tokens, key, ctype)
