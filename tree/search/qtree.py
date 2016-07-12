@@ -84,7 +84,7 @@ class QtreeFinder(object):
             self.resultSent2 += self.tk[int(qtree.elem)]['l'] + ' '
         elif depth == 2:
             self.cost += 1
-            self.resultSent2 += qtree.elem
+            self.resultSent2 += qtree.elem + ' '
             return
 
         for child in qtree.children:
