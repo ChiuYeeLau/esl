@@ -82,7 +82,7 @@ class QtreeFinder(object):
         if not qtree.children:
             self.cost += 1
             self.resultSent2 += self.tk[int(qtree.elem)]['l'] + ' '
-        elif depth == 2:
+        elif self.ctype == 0 and depth == 2 or self.ctype != 0 and depth == 1:
             self.cost += 1
             self.resultSent2 += qtree.elem + ' '
             return
@@ -102,7 +102,7 @@ class QtreeFinder(object):
             self.debug(child, depth + 1)
 
 
-def addCluster(inMap, retList, title):
+def addCluster(inMap, retList, title, dictc):
     if title not in inMap:
         inMap[title] = len(inMap)
     retId = inMap[title]
@@ -112,7 +112,7 @@ def addCluster(inMap, retList, title):
             desc['count'] += 1
             flag = True
     if not flag:
-        retList.append({'id': retId, 'count': 1, 'title': title})
+        retList.append(dict({'id': retId, 'count': 1, 'title': title}, **dictc))
     return retId
 
 
@@ -165,13 +165,13 @@ def get_qtree_db(tree, tokens, key, ctype):
         tp = check_find(tree, key, tokens, qtree, tk, ctype)
         if tp:
             # senId = addCluster(senmap, senlist, tp.resultSent)
-            senId2 = addCluster(senmap2, senlist2, tp.resultSent2)
+            senId2 = addCluster(senmap2, senlist2, tp.resultSent2, {'len': tp.cost})
 
             stplist = [str(ele) for ele in tp.qkey]
             resultDict = {'sentence': sen['sentence'], 'list': ' '.join(stplist), 'sen': senId2}
 
             strlist.append(resultDict)
-    senlist2.sort(key=lambda word: -word['count'])
+    senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'])
     return retJson
 
 
