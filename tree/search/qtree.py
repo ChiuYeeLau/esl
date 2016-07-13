@@ -3,6 +3,7 @@
 
 from itertools import product, imap
 from search.parse import transfer_Node_i, parse, tree_format
+from search.clean_sentence import cleaned_sentence
 from search.util import getq, check_equal
 from pymongo import MongoClient
 client = MongoClient()
@@ -167,8 +168,8 @@ def get_qtree_db(tree, tokens, key, ctype):
             # senId = addCluster(senmap, senlist, tp.resultSent)
             senId2 = addCluster(senmap2, senlist2, tp.resultSent2, {'len': tp.cost})
 
-            stplist = [str(ele) for ele in tp.qkey]
-            resultDict = {'sentence': sen['sentence'], 'list': ' '.join(stplist), 'sen': senId2}
+            markSent = cleaned_sentence([w['t'] for w in tk], tp.qkey)
+            resultDict = {'sentence': markSent, 'sen': senId2}
 
             strlist.append(resultDict)
     senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'])
