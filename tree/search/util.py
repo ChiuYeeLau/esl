@@ -10,7 +10,7 @@ from pymongo import MongoClient
 client = MongoClient()
 db = client.test
 db.authenticate('test', 'test')
-cl = db.syntax
+cl = db.syntax2
 
 #cl = MongoClient('127.0.0.1').local.syntax
 

@@ -1,5 +1,5 @@
-// var hostAddr = '127.0.0.1:8000';
-var hostAddr = 'esldownloader1.cloudapp.net:8000';
+var hostAddr = '127.0.0.1:8000';
+// var hostAddr = 'esldownloader1.cloudapp.net:8000';
 
 $(document).ready(function() {
     $('.btn-reset').click(function() {
@@ -28,7 +28,7 @@ $(document).ready(function() {
         }
         var $btn = $(this).button('loading');
 
-        $.getJSON("http://" + hostAddr + $(this).attr('data-url'), {"sentence":sentence, "word_pos":word_pos}, 
+        $.getJSON("http://" + hostAddr + $(this).attr('data-url'), {"sentence":sentence, "word_pos":word_pos},
             function(data){
                 $('.num-results').text(data.result.length);
                 $('.output').empty();
@@ -86,11 +86,11 @@ $(document).ready(function() {
            '-moz-user-select':'-moz-none',
            '-moz-user-select':'none',
            '-o-user-select':'none',
-           '-khtml-user-select':'none', 
+           '-khtml-user-select':'none',
            '-webkit-user-select':'none',
            '-ms-user-select':'none',
            'user-select':'none'});
-            
+
           //  console.log((post1[i].length * 15).toString() + "px");
             //
         }
@@ -131,8 +131,8 @@ $(document).ready(function() {
             var post = $('.status-box').val();
           }
           else
-        { 
-          d3.select("#tree2").remove();    
+        {
+          d3.select("#tree2").remove();
           var svg1 = svg1_tmp
             .attr("id", "tree2")
             .append("g")
@@ -148,7 +148,7 @@ $(document).ready(function() {
 
             generateTokens($(data.tokens).map(function(_, token) { return token.t; }));
             data = d3.csvParse(data.tree);
-                          
+
 
         //d3.csv("flare.csv", function(error, data) {
         //  if (error) throw error;
@@ -165,7 +165,7 @@ $(document).ready(function() {
             .enter().append("path")
               .attr("class", "link")
               .attr("d", function(d) {
-                return "M" + d.y + " " 
+                return "M" + d.y + " "
                 + d.x + "L" + d.parent.y + " "
                 + d.parent.x;
               });
@@ -195,7 +195,7 @@ $(document).ready(function() {
               .attr("x", function(d) { return d.children ? -8 : 8; })
          //     .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
               .style("margin", "10px")
-              .text(function(d) { 
+              .text(function(d) {
              //   console.log(d.id.lastIndexOf("@"));
              //   console.log(d.id.substring(d.id.lastIndexOf("@") + 1));
                 return d.id.substring(d.id.lastIndexOf("@") + 1); });
@@ -240,8 +240,8 @@ $(document).ready(function() {
             var post = $('.status-box').val();
           }
           else
-        { 
-          d3.select("#tree2").remove();    
+        {
+          d3.select("#tree2").remove();
           var svg2 = svg2_tmp
             .attr("id", "tree2")
             .append("g")
@@ -253,9 +253,9 @@ $(document).ready(function() {
 
 
         var flare = $.get("http://" + hostAddr + "/syntaxtree/", {"tree":post}, function(data){
-            // console.log(data); 
+            // console.log(data);
             data = d3.csvParse(data.tree);
-                          
+
 
         //d3.csv("flare.csv", function(error, data) {
         //  if (error) throw error;
@@ -272,7 +272,7 @@ $(document).ready(function() {
             .enter().append("path")
               .attr("class", "link")
               .attr("d", function(d) {
-                return "M" + d.y + " " 
+                return "M" + d.y + " "
                 + d.x + "L" + d.parent.y + " "
                 + d.parent.x;
               });
@@ -302,7 +302,7 @@ $(document).ready(function() {
               .attr("x", function(d) { return d.children ? -8 : 8; })
          //     .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
               .style("margin", "10px")
-              .text(function(d) { 
+              .text(function(d) {
              //   console.log(d.id.lastIndexOf("@"));
              //   console.log(d.id.substring(d.id.lastIndexOf("@") + 1));
                 return d.id.substring(d.id.lastIndexOf("@") + 1); });
@@ -320,7 +320,7 @@ $(document).ready(function() {
         // console.log($(this).hasClass("active"));
     });
 
-    $('div').on('mouseover','.word', function(){ 
+    $('div').on('mouseover','.word', function(){
             if(document.ismousedown){
                 if(!$(this).hasClass("active"))
                     { $(this).addClass("active"); }
@@ -328,7 +328,7 @@ $(document).ready(function() {
             }
         });
 
-    $('body').on('mouseup', function(){ 
+    $('body').on('mouseup', function(){
        // console.log("aaa");
             document.ismousedown = false;
         });
