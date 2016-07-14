@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+import json
 from itertools import product, imap
 from search.parse import transfer_Node_i, parse, tree_format
 from search.clean_sentence import cleaned_sentence
@@ -10,8 +11,10 @@ client = MongoClient()
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax2
+f = open('search/stemmer.json')
+stemmerDict = json.load(f)
+Gflag = True
 
-Gflag = False
 
 class QtreeFinder(object):
     def __init__(self, tree, key, qtree, qkey, tk, ctype=0):
@@ -19,7 +22,7 @@ class QtreeFinder(object):
         self.resultSent = ""
         self.resultSent2 = ""
         self.cost = 0
-        self.nodeList = []
+        self.outputArg = 0
         self.tree = tree
         self.key = key
         self.qtree = qtree
@@ -84,7 +87,13 @@ class QtreeFinder(object):
         if not qtree.children:
             self.cost += 1
             self.resultSent2 += self.tk[int(qtree.elem)]['l'] + ' '
+            if int(qtree.elem) == self.qkey[-1]:
+                self.outputArg += 1
         elif self.ctype == 0 and depth == 2 or self.ctype != 0 and depth == 1:
+            if self.outputArg > 0:
+                self.outputArg += 1
+                if self.outputArg > 2:
+                    return
             self.cost += 1
             self.resultSent2 += qtree.elem + ' '
             return
@@ -118,18 +127,23 @@ def addCluster(inMap, retList, title, dictc):
     return retId
 
 # [u'index', u'word', u'lemma', u'after', u'pos', u'characterOffsetEnd', u'characterOffsetBegin', u'originalText', u'before']
-def is_upper(k, tokens):
-    tt = str(tokens[k]['word'])
-    return tt.isalpha() and tt.isupper()    
+def is_upper(token):
+    tt = str(token['word'])
+    return tt.isalpha() and tt.isupper()
+
+
+def stemmer_value(token):
+    tt = str(token['lemma'])
+    return stemmerDict.get(tt, tt)
 
 
 def check_find(tree, key, tokens, qtree, tk, ctype):
     iterlists = []
     for k in key:
-        flag = is_upper(k, tokens)
+        flag = is_upper(tokens[k])
         iterlist = []
         for i, t in enumerate(tk):
-            if flag and tokens[k]['word'] == t['p'] or not flag and tokens[k]['lemma'] == t['l']:
+            if flag and tokens[k]['word'] == t['p'] or not flag and stemmer_value(tokens[k]) == t['s']:
                 iterlist.append(i)
         iterlists.append(iterlist)
 
@@ -151,15 +165,15 @@ def check_find(tree, key, tokens, qtree, tk, ctype):
 def get_qtree_db(tree, tokens, key, ctype):
     nkey = []
     for k in key:
-        if not is_upper(k, tokens):
+        if not is_upper(tokens[k]):
             nkey.append(k)
     if ctype == 2:
-        keys = [tokens[k]['lemma'] for k in nkey]
+        keys = [stemmer_value(tokens[k]) for k in nkey]
         keys.sort(key=lambda word: -len(word))
-        rs = cl.find({'tokens.l': {'$all': keys}})
+        rs = cl.find({'tokens.s': {'$all': keys}})
     else:
-        keys = [{'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}} for k in nkey]
-        keys.sort(key=lambda word: -len(word['$elemMatch']['l']))
+        keys = [{'$elemMatch': {'s': stemmer_value(tokens[k]), 'q': getq(tokens[k]['pos'])}} for k in nkey]
+        keys.sort(key=lambda word: -len(word['$elemMatch']['s']))
         rs = cl.find({'tokens': {'$all': keys}})
 
     # retJson = {'result': [], 'desc': {'sen': []}}
