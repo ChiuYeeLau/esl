@@ -5,6 +5,7 @@ import os
 import re
 import ctypes
 from search.parse import *
+from search.clean_sentence import cleaned_sentence
 from pymongo import MongoClient
 #client = MongoClient('166.111.139.42')
 client = MongoClient()
@@ -141,8 +142,8 @@ def get_query_db2(tree, msg, tokens, keys):
         tp = check_find(msg, tokens, sent, tk)
         if tp != -1:
             tplist = get_pos_list(msg, sent, tp)
-            stplist = [str(ele) for ele in tplist]
-            strlist.append({'sentence': sen['sentence'], 'list': ' '.join(stplist)})
+            markSent = cleaned_sentence([w['t'] for w in tk], tplist)
+            strlist.append({'sentence': markSent})
             #print sen['sentence'], tplist
             cnt = cnt + 1
     return retJson

@@ -36,12 +36,15 @@ $(document).ready(function() {
                     $('<li>').html(g.title + ' (' + g.count + ')').append($('<ul class="sentence-group">').attr('data-id', g.id)).appendTo('.output');
                 });
                 $(data.result).each(function(_, r) {
+                    /*
                     var words = r.sentence.split(' '),
                         pos = r.list.split(' ');
                     $(pos).each(function(_, p) {
                         words[Number(p)] = '<span>' + words[Number(p)] + '</span>';
                     });
                     $('<li class="sentence">').html(words.join(' ')).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
+                    */
+                    $('<li class="sentence">').html(r.sentence).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
                 });
                 $btn.button('reset');
             });

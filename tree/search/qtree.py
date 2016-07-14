@@ -11,6 +11,7 @@ db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax2
 
+Gflag = False
 
 class QtreeFinder(object):
     def __init__(self, tree, key, qtree, qkey, tk, ctype=0):
@@ -116,13 +117,19 @@ def addCluster(inMap, retList, title, dictc):
         retList.append(dict({'id': retId, 'count': 1, 'title': title}, **dictc))
     return retId
 
+# [u'index', u'word', u'lemma', u'after', u'pos', u'characterOffsetEnd', u'characterOffsetBegin', u'originalText', u'before']
+def is_upper(k, tokens):
+    tt = str(tokens[k]['word'])
+    return tt.isalpha() and tt.isupper()    
+
 
 def check_find(tree, key, tokens, qtree, tk, ctype):
     iterlists = []
     for k in key:
+        flag = is_upper(k, tokens)
         iterlist = []
         for i, t in enumerate(tk):
-            if tokens[k]['lemma'] == t['l']:
+            if flag and tokens[k]['word'] == t['p'] or not flag and tokens[k]['lemma'] == t['l']:
                 iterlist.append(i)
         iterlists.append(iterlist)
 
@@ -142,12 +149,16 @@ def check_find(tree, key, tokens, qtree, tk, ctype):
 
 
 def get_qtree_db(tree, tokens, key, ctype):
+    nkey = []
+    for k in key:
+        if not is_upper(k, tokens):
+            nkey.append(k)
     if ctype == 2:
-        keys = [tokens[k]['lemma'] for k in key]
+        keys = [tokens[k]['lemma'] for k in nkey]
         keys.sort(key=lambda word: -len(word))
         rs = cl.find({'tokens.l': {'$all': keys}})
     else:
-        keys = [{'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}} for k in key]
+        keys = [{'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}} for k in nkey]
         keys.sort(key=lambda word: -len(word['$elemMatch']['l']))
         rs = cl.find({'tokens': {'$all': keys}})
 
