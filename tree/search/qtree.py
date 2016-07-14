@@ -22,7 +22,7 @@ class QtreeFinder(object):
         self.resultSent = ""
         self.resultSent2 = ""
         self.cost = 0
-        self.outputArg = 0
+        self.outputArg = -1
         self.tree = tree
         self.key = key
         self.qtree = qtree
@@ -87,6 +87,7 @@ class QtreeFinder(object):
         if not qtree.children:
             self.cost += 1
             self.resultSent2 += self.tk[int(qtree.elem)]['l'] + ' '
+            self.outputArg = 0
             if int(qtree.elem) == self.qkey[-1]:
                 self.outputArg += 1
         elif self.ctype == 0 and depth == 2 or self.ctype != 0 and depth == 1:
@@ -94,6 +95,8 @@ class QtreeFinder(object):
                 self.outputArg += 1
                 if self.outputArg > 2:
                     return
+            elif self.outputArg < 0:
+                return
             self.cost += 1
             self.resultSent2 += qtree.elem + ' '
             return
