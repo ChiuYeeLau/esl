@@ -151,14 +151,14 @@ def check_find(tree, key, tokens, qtree, tk, ctype):
         flag = is_upper(tokens[k])
         iterlist = []
         for i, t in enumerate(tk):
-            if flag and tokens[k]['word'] == t['p'] or not flag and stemmer_value(tokens[k]) == t['s']:
+            if flag and check_equal(tokens[k]['word'], t['p']) or not flag and stemmer_value(tokens[k]) == t['s']:
                 iterlist.append(i)
         iterlists.append(iterlist)
 
     retFinder = None
 
     for qkey in product(*iterlists):
-        if reduce(lambda x, y: (x[0] and x[1] < y, y), qkey, (True, -1))[0]:
+        if ctype == 2 or reduce(lambda x, y: (x[0] and x[1] < y, y), qkey, (True, -1))[0]:
             qtreeFinder = QtreeFinder(tree, key, qtree, qkey, tk, ctype)
             qtreeFinder.get_result()
             if ctype != 2 and qtreeFinder.result:
@@ -168,6 +168,13 @@ def check_find(tree, key, tokens, qtree, tk, ctype):
                 retFinder = qtreeFinder
 
     return retFinder
+
+
+def result_part(retJson):
+    if len(retJson['desc']['sen']) > 20:
+        retJson['desc']['sen'] = retJson['desc']['sen'][:20]
+        senlist = [sen['id'] for sen in retJson['desc']['sen']]
+        retJson['result'] = [result for result in retJson['result'] if result['sen'] in senlist]
 
 
 def get_qtree_db(tree, tokens, key, ctype):
@@ -206,6 +213,7 @@ def get_qtree_db(tree, tokens, key, ctype):
                 strlist.append(resultDict)
 
     senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'])
+    result_part(retJson)
     return retJson
 
 
