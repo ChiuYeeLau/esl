@@ -120,14 +120,19 @@ def addCluster(inMap, retList, title, dictc):
     if title not in inMap:
         inMap[title] = len(inMap)
     retId = inMap[title]
-    flag = False
+    flag1, flag2 = False, False
     for desc in retList:
         if desc['id'] == retId:
             desc['count'] += 1
-            flag = True
-    if not flag:
+            flag2 = True
+            if desc['count'] <= 10:
+                flag1 = True
+            break
+    if not flag2:
+        flag1 = True
         retList.append(dict({'id': retId, 'count': 1, 'title': title}, **dictc))
-    return retId
+    return (retId, flag1)
+
 
 # [u'index', u'word', u'lemma', u'after', u'pos', u'characterOffsetEnd', u'characterOffsetBegin', u'originalText', u'before']
 def is_upper(token):
@@ -194,12 +199,12 @@ def get_qtree_db(tree, tokens, key, ctype):
         tp = check_find(tree, key, tokens, qtree, tk, ctype)
         if tp:
             # senId = addCluster(senmap, senlist, tp.resultSent)
-            senId2 = addCluster(senmap2, senlist2, tp.resultSent2, {'len': tp.cost})
+            (senId2, flag1) = addCluster(senmap2, senlist2, tp.resultSent2, {'len': tp.cost})
+            if flag1:
+                markSent = cleaned_sentence([w['t'] for w in tk], tp.qkey)
+                resultDict = {'sentence': markSent, 'sen': senId2}
+                strlist.append(resultDict)
 
-            markSent = cleaned_sentence([w['t'] for w in tk], tp.qkey)
-            resultDict = {'sentence': markSent, 'sen': senId2}
-
-            strlist.append(resultDict)
     senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'])
     return retJson
 
