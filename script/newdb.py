@@ -57,7 +57,7 @@ def make_tree(s):
             q += c
 
     return q
-    
+
 
 def make_tree0(tr):
     ntr = ''
@@ -77,7 +77,7 @@ def make_tree0(tr):
             tmp = ''
         else:
             tmp += c
-    
+
     return ntr
 
 
@@ -110,7 +110,7 @@ if __name__ == '__main__':
             info = []
             print 'insert'
         fin1.close()
-    
+
     if len(info) > 0:
         posts.insert_many(info)
         print 'insert'
