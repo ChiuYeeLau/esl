@@ -7,7 +7,7 @@ from search.parse import transfer_Node_i, parse, tree_format
 from search.clean_sentence import cleaned_sentence
 from search.util import getq, check_equal
 from pymongo import MongoClient
-client = MongoClient()
+client = MongoClient('166.111.139.42')
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax2
