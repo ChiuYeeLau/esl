@@ -89,8 +89,10 @@ class QtreeFinder(object):
             self.cost += 1
             self.resultList2.append(self.tk[int(qtree.elem)]['l'])
             self.outputArg += 1
+            childcnt[1] = 1
+            return
         elif self.ctype == 0 and depth == 2 or self.ctype != 0 and depth == 1:
-            if self.outputArg >= len(self.qkey):
+            if self.outputArg >= len(self.qkey) - 1:
                 self.outputArg += 1
                 if self.outputArg > len(self.qkey):
                     return
@@ -102,16 +104,18 @@ class QtreeFinder(object):
                 self.cost += 1
             return
 
-        childcnt[0] = 0
         for child in qtree.children:
-            childcnt[0] = 0
+            childcnt = [0, 0]
             self.get_more_result(child, childcnt, depth if depth == 0 and child in self.nodeList else depth + 1)
-            childcnt[0] = 0
-        childcnt[0] = 0
+        '''
+        if self.outputArg < len(self.qkey) - 1 and qtree.children[-1].children:
+            self.resultList2.append('|')
+            self.cost += 1
+        '''
 
     def add_result(self, qtree):
         self.result = qtree
-        self.get_more_result(qtree, [0])
+        self.get_more_result(qtree, [0, 0])
         self.resultSent2 = ' '.join(self.resultList2)
         self.resultSent = ' '.join([self.tk[i]['l'] for i in range(self.qkey[0], self.qkey[-1] + 1)])
 
