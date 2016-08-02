@@ -8,6 +8,7 @@ from search.clean_sentence import cleaned_sentence
 from search.util import getq, check_equal
 from pymongo import MongoClient
 client = MongoClient('166.111.139.42')
+# client = MongoClient('127.0.0.1')
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax2
@@ -23,6 +24,7 @@ class QtreeFinder(object):
         self.resultList2 = []
         self.resultSent2 = ""
         self.cost = 0
+        self.checker = True
         self.outputArg = -1
         self.tree = tree
         self.key = key
@@ -83,13 +85,19 @@ class QtreeFinder(object):
             self.nodeList.append(nodeq)
 
         self.add_result(listq[0])
+    
+    def deep_check(self, qtree):
+        if qtree.elem in ['_comma_', '.']:
+            self.checker = False
+        for child in qtree.children:
+            if self.checker:
+                self.deep_check(child)
 
     def get_more_result(self, qtree, childcnt, depth=0):
         if not qtree.children:
             self.cost += 1
             self.resultList2.append(self.tk[int(qtree.elem)]['l'])
             self.outputArg += 1
-            childcnt[1] = 1
             return
         elif self.ctype == 0 and depth == 2 or self.ctype != 0 and depth == 1:
             if self.outputArg >= len(self.qkey) - 1:
@@ -102,21 +110,31 @@ class QtreeFinder(object):
                 self.resultList2.append('...')
                 childcnt[0] += 1
                 self.cost += 1
+            if self.checker:
+                self.deep_check(qtree)
             return
 
+        childcnt[0] = 0
         for child in qtree.children:
-            childcnt = [0, 0]
             self.get_more_result(child, childcnt, depth if depth == 0 and child in self.nodeList else depth + 1)
-        '''
-        if self.outputArg < len(self.qkey) - 1 and qtree.children[-1].children:
-            self.resultList2.append('|')
-            self.cost += 1
-        '''
+        
+        if self.outputArg < len(self.qkey) - 1:
+            if self.resultList2 and self.resultList2[-1] not in ['', '...', '|']:
+                self.resultList2.append('')
+            else:
+                self.resultList2.append('|')
+                self.cost += 1
+        
 
     def add_result(self, qtree):
         self.result = qtree
         self.get_more_result(qtree, [0, 0])
-        self.resultSent2 = ' '.join(self.resultList2)
+        
+        if self.checker and self.cost <= max(len(self.qkey) * 2, 5):
+            self.resultSent2 = ' '.join(self.resultList2)
+        else:
+            self.resultSent2 = '_others_'
+        
         self.resultSent = ' '.join([self.tk[i]['l'] for i in range(self.qkey[0], self.qkey[-1] + 1)])
 
     def debug(self, qtree, depth=0):
@@ -160,12 +178,14 @@ def check_find(tree, key, tokens, qtree, tk, ctype):
         flag = is_upper(tokens[k])
         iterlist = []
         for i, t in enumerate(tk):
-            if flag and check_equal(tokens[k]['word'], t['p']) or not flag and stemmer_value(tokens[k]) == t['s']:
+            # if flag and check_equal(tokens[k]['word'], t['p']) or not flag and stemmer_value(tokens[k]) == t['s']:
+            if flag and check_equal(tokens[k]['word'], t['p']) or not flag and tokens[k]['lemma'] == t['l']:
                 iterlist.append(i)
         iterlists.append(iterlist)
 
     retFinder = None
 
+    # print reduce(lambda x, y: x*len(y), iterlists, 1)
     for qkey in product(*iterlists):
         if ctype == 2 or reduce(lambda x, y: (x[0] and x[1] < y, y), qkey, (True, -1))[0]:
             qtreeFinder = QtreeFinder(tree, key, qtree, qkey, tk, ctype)
@@ -181,7 +201,7 @@ def check_find(tree, key, tokens, qtree, tk, ctype):
 
 def result_part(retJson):
     if len(retJson['desc']['sen']) > 20:
-        retJson['desc']['sen'] = retJson['desc']['sen'][:20]
+        retJson['desc']['sen'] = retJson['desc']['sen'][:20] + retJson['desc']['sen'][-1:]
         senlist = [sen['id'] for sen in retJson['desc']['sen']]
         retJson['result'] = [result for result in retJson['result'] if result['sen'] in senlist]
 
@@ -192,12 +212,17 @@ def get_qtree_db(tree, tokens, key, ctype):
         if not is_upper(tokens[k]):
             nkey.append(k)
     if ctype == 2:
-        keys = [stemmer_value(tokens[k]) for k in nkey]
+        # keys = [stemmer_value(tokens[k]) for k in nkey]
+        keys = [tokens[k]['lemma'] for k in nkey]
         keys.sort(key=lambda word: -len(word))
-        rs = cl.find({'tokens.s': {'$all': keys}})
+        # rs = cl.find({'tokens.s': {'$all': keys}})
+        rs = cl.find({'tokens.l': {'$all': keys}})
     else:
-        keys = [{'$elemMatch': {'s': stemmer_value(tokens[k]), 'q': getq(tokens[k]['pos'])}} for k in nkey]
-        keys.sort(key=lambda word: -len(word['$elemMatch']['s']))
+        # keys = [{'$elemMatch': {'s': stemmer_value(tokens[k]), 'q': getq(tokens[k]['pos'])}} for k in nkey]
+        # keys.sort(key=lambda word: -len(word['$elemMatch']['s']))
+        # rs = cl.find({'tokens': {'$all': keys}})
+        keys = [{'$elemMatch': {'l': tokens[k]['lemma'], 'q': getq(tokens[k]['pos'])}} for k in nkey]
+        keys.sort(key=lambda word: -len(word['$elemMatch']['l']))
         rs = cl.find({'tokens': {'$all': keys}})
 
     # retJson = {'result': [], 'desc': {'sen': []}}
@@ -208,11 +233,14 @@ def get_qtree_db(tree, tokens, key, ctype):
     senlist2 = retJson['desc']['sen']
 
     strlist = retJson['result']
+    cnt = 0
+    tt = rs.count()
     for sen in rs:
         sent = sen['tree0']
         tk = sen['tokens']
         qtree = transfer_Node_i(sent)
         tp = check_find(tree, key, tokens, qtree, tk, ctype)
+        cnt += 1
         if tp:
             # senId = addCluster(senmap, senlist, tp.resultSent)
             (senId2, flag1) = addCluster(senmap2, senlist2, tp.resultSent2, {'len': tp.cost})
@@ -220,8 +248,8 @@ def get_qtree_db(tree, tokens, key, ctype):
                 markSent = cleaned_sentence([w['t'] for w in tk], tp.qkey)
                 resultDict = {'sentence': markSent, 'sen': senId2}
                 strlist.append(resultDict)
-
-    senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'])
+            
+    senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'] if word['title'] != '_others_' else 0)
     result_part(retJson)
     return retJson
 
