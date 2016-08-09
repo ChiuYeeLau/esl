@@ -3,6 +3,10 @@ import requests
 # NLP_SERVER = '166.111.139.15:9000'
 NLP_SERVER = 'localhost:9000'
 
+validpass = {
+    ("NN", "NP"), ("VB", "VP")
+}
+
 
 class Node(object):
     def __init__(self, elem="", parent=None, depth=-1):
@@ -11,6 +15,7 @@ class Node(object):
         self.parent = parent
         self.size = 1
         self.depth = depth
+        self.extra = {}
 
 
 class Tree(object):
