@@ -4,7 +4,7 @@ import requests
 NLP_SERVER = 'localhost:9000'
 
 validpass = {
-    ("NN", "NP"), ("VB", "VP")
+    ("NN", "NP"), ("VB", "VP"), ("RB", "ADVP"), ("JJ", "ADJP")
 }
 
 
