@@ -7,8 +7,8 @@ from search.parse import transfer_Node_i, parse, tree_format, validpass
 from search.clean_sentence import cleaned_sentence
 from search.util import getq
 from pymongo import MongoClient
-client = MongoClient('166.111.139.42')
-# client = MongoClient('127.0.0.1')
+# client = MongoClient('166.111.139.42')
+client = MongoClient('127.0.0.1')
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax2
@@ -33,6 +33,7 @@ def getextend(key, arg):
     for child in key.children:
         if checksuit(child.elem, key.elem):
             key.extra['rep'] += child.extra.get('rep', [])
+    # the extend of (NP of NP)
 
 
 def addCluster(inMap, retList, title, dictc={}):
@@ -66,89 +67,99 @@ def wordget(child):
 
 
 def modeget(child, arg, c, ad=False):
+    c[0] &= child.elem[0].isalpha()
+    c[0] &= child.elem not in ['MD', 'CC']
+    c[1] += 1
     if child.elem in ['IN', 'TO']:
         return arg['tk'][int(child.children[0].elem)]['l'] + ' '
-    else:
-        c[0] &= child.elem[0].isalpha()
-        c[0] &= child.elem not in ['MD', 'CC']
-        c[1] += 1
-        if child.elem in ['DT']:
+    elif child.elem in ['DT', 'PRP$']:
+        c[1] -= 1
+        return ''
+    elif ad and child.elem in ['VBG', 'VBD']:
+        c[2] |= 1
+        return child.elem + ' '
+    elif child.elem in ['SBAR']:
+        return 'S '
+    elif len(child.children) == 1 and len(child.children[0].children) == 0:
+        tk = arg['tk'][int(child.children[0].elem)]['l']
+        if tk in ['be']:
+            return tk + ' '
+        elif tk in ['have']:
             c[1] -= 1
             return ''
-        elif len(child.children) == 1 and len(child.children[0].children) == 0:
-            tk = arg['tk'][int(child.children[0].elem)]['l']
-            if tk in ['be']:
-                return tk + ' '
-            elif tk in ['have']:
-                c[1] -= 1
-                return ''
-            elif ad and child.elem in ['VBG', 'VBD']:
-                return child.elem + ' '
-            else:
-                return getq(child.elem) + ' '
         else:
-            if child.elem in ['SBAR']:
-                return 'S '
-            else:
-                return child.elem + ' '
-
-
-def getansq(q, ap):
-    if ap:
-        q.append(q[-1])
-        return q[-2]
+            return getq(child.elem) + ' '
     else:
-        return q[-1]
+        return child.elem + ' '
 
 
 def getrees(key, last, arg):
-    q = [{'mod': "", 'word': "", 'ch': [True, 0, 0]}]
-    ed = False
-    if key.parent.elem == 'VP' and key.elem == 'VP' and arg['tk'][arg['keypos']]['q'] == 'VB':
+    q = {'mod': "", 'word': "", 'ch': [True, 0, 0]}
+    ed, br = False, False
+    if key.parent.elem == 'VP' and key.elem == 'VP':
         checkbe = key.parent.children[0].children
-        if len(checkbe[0].children) == 0 and arg['tk'][int(checkbe[0].elem)]['l'] == 'be':
-            ansq = q[-1]
-            ansq['mod'] += 'be '
-            ansq['word'] += 'be '
-            ed = True
+        ts = arg['keytk']['p']
+        if len(checkbe[0].children) == 0:
+            wd = arg['tk'][int(checkbe[0].elem)]['l']
+            if ts in ['VBN'] and wd in ['be']:
+                ansq = q
+                ansq['mod'] += 'be '
+                ansq['word'] += 'be '
+                ed = True
+            if ts in ['VBN'] and wd in ['have'] or ts in ['VBG'] and wd in ['be'] \
+                    or ts in ['VB'] and wd in ['will', 'would', 'to', 'do']:
+                br = True
+            # should not br, but only one time
+    if key.parent.elem == 'NP' and key.elem == 'VP' and arg['keytk']['q'] == 'VB' \
+            or key.elem in ['PP']:
+        return False
+    if key.elem == 'NP' and arg['keytk']['q'] == 'VB':
+        ed = True
     for child in key.children:
         if child == last:
-            ansq = getansq(q, child.elem in ['ADVP'])
+            ansq = q
             if ed:
-                sub = arg['tk'][arg['keypos']]['t'] + ' '
+                sub = arg['keytk']['t']
             else:
-                sub = arg['tk'][arg['keypos']]['l'] + ' '
-            ansq['mod'] += sub
-            ansq['word'] += sub
+                sub = arg['keytk']['l']
+            ansq['mod'] += sub + '(%s) ' % arg['keytk']['q']
+            ansq['word'] += sub + '(%s) ' % arg['keytk']['q']
         elif child.elem in ['PP']:
-            ansq = getansq(q, child.elem in ['PP'])
+            ansq = q
             for child2 in child.children:
                 ansq['mod'] += modeget(child2, arg, ansq['ch'], True)
                 ansq['word'] += wordget(child2)
+                if ansq['ch'][2] > 0:
+                    break
         elif child.elem in ['S'] and len(child.children) == 1 and child.children[0].elem == "VP":
-            ansq = q[-1]
+            ansq = q
             for child2 in child.children[0].children:
                 ansq['mod'] += modeget(child2, arg, ansq['ch'], True)
                 ansq['word'] += wordget(child2)
+                if ansq['ch'][2] > 0:
+                    break
+        elif arg['tk'][arg['keypos']]['q'] == 'NN' and child.elem in ['S', 'SBAR']:
+            pass
         else:
-            ansq = getansq(q, child.elem in ['ADVP'])
+            ansq = q
             ansq['mod'] += modeget(child, arg, ansq['ch'])
             ansq['word'] += wordget(child)
 
     last = ''
-    for ans in q:
-        if ans['ch'][0] and ans['ch'][1] > 0:
-            if ans['mod'] != last:
-                addResult(arg, ans['mod'])
-                last = ans['mod']
+    ans = q
+    if ans['ch'][0] and ans['ch'][1] > 0:
+        if ans['mod'] != last:
+            addResult(arg, ans['mod'])
+            last = ans['mod']
 
-    return ed
+    return ed or br
 
 
 def extreeFinder(tree, key, arg):
     last = key.parent
     last.extra['rep'] = [arg['tk'][int(key.elem)]['l']]
     key = key.parent.parent
+    wb = False
     while key.elem != '@':
         for child in key.children:
             if child != last:
@@ -156,8 +167,10 @@ def extreeFinder(tree, key, arg):
 
         if getrees(key, last, arg):
             break
-        if not checksuit(key.elem, key.parent.elem):
+        if wb:
             break
+        if not checksuit(key.elem, key.parent.elem):
+            wb = True
 
         last = key
         key = key.parent
@@ -174,6 +187,7 @@ def check_find(key, tokens, qtree, arg):
 
     for qkey in iterlist:
         arg['keypos'] = qkey
+        arg['keytk'] = arg['tk'][qkey]
         extreeFinder(qtree[0], qtree[1][qkey], arg)
 
 
