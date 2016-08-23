@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^search3/', search3, {'ctype': 0}),
     url(r'^search4/', search3, {'ctype': 1}),
     url(r'^search5/', search3, {'ctype': 2}),
-    url(r'^search6/', search4),
+    url(r'^search6/', search4, {'stype': 0}),
+    url(r'^search7/', search4, {'stype': 1}),
     url(r'^syntaxtree/', get_tree),
 ]

@@ -4,6 +4,7 @@ from django.http import HttpResponse, JsonResponse
 from search.util import get_query_inter, get_parse
 from search.qtree import get_qtree_inter
 from search.extree import get_extree_inter
+from search.comnex import get_comnex_inter
 
 # Create your views here.
 
@@ -54,13 +55,16 @@ def search3(request, ctype):
     return JsonResponse(strlist)
 
 
-def search4(request):
+def search4(request, stype):
     if request.method == 'GET':
         message = request.GET.get('sentence', '')
         keys = request.GET.get('word_pos', '')
         key = [int(ele) for ele in keys.split(' ') if len(ele) > 0]
         if message != '':
-            strlist = get_extree_inter(message, key)
+            if stype == 0:
+                strlist = get_extree_inter(message, key)
+            else:
+                strlist = get_comnex_inter(message, key)
         else:
             strlist = {}
     else:

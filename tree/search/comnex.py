@@ -1,0 +1,370 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+import json
+from itertools import product
+from search.parse import transfer_Node_i, parse
+from search.clean_sentence import cleaned_sentence
+from search.util import getq
+from pymongo import MongoClient
+# client = MongoClient('166.111.139.42')
+client = MongoClient('127.0.0.1')
+db = client.test
+db.authenticate('test', 'test')
+cl = db.syntax2
+f = open('../script/newconjugate.json')
+conjugateDict = json.load(f)
+disp = {'SBAR': 'S', 'ADVP': 'ADV', 'ADJP': 'ADJ', 'JJ': 'ADJ', 'RB': 'ADV',
+        'NN': 'N', 'NP': 'N', 'VP': 'V', 'VB': 'V'}
+
+
+def dfs_root_tree(tree, arg):
+    tree.extra['tag'] = -1
+    for child in tree.children:
+        dfs_root_tree(child, arg)
+    if len(tree.children) == 0:
+        tree.extra['rep'] = [arg['tk'][int(tree.elem)]['l'], '']
+    elif len(tree.children[0].children) == 0:
+        tree.extra['rep'] = [tree.children[0].extra['rep'][0], tree.elem]
+    else:
+        tree.extra['rep'] = ['', '']
+        tex = tree.extra
+        te = tree.elem
+        tk = arg['tk']
+        stat = [0] * 5
+        for child in tree.children:
+            cexr = child.extra['rep']
+            if te == 'NP':
+                if child.elem in ['NN', 'NP']:
+                    tex['rep'] = cexr
+                elif child.elem == 'PP':
+                    c = child.children[0]
+                    if c.elem == 'IN':
+                        tkcc = tk[int(c.children[0].elem)]['l']
+                        if tkcc == 'of':
+                            tex['rep'][0] = ''
+            elif te == 'VP':
+                if child.elem == 'TO':
+                    stat[0] = 1
+                elif getq(child.elem) == 'VB':
+                    tkc = tk[int(child.children[0].elem)]['l']
+                    if tkc == 'have':
+                        stat[0] = 2
+                    elif tkc == 'be':
+                        stat[0] = 3
+                    elif tkc == 'do':
+                        stat[0] = 4
+                elif child.elem == 'MD':
+                    tkc = tk[int(child.children[0].elem)]['l']
+                    if tkc in ['will', 'would']:
+                        stat[0] = 5
+                elif child.elem == 'VP':
+                    if stat[0] == 2 and cexr[1] == 'VBD' or \
+                            stat[0] == 3 and cexr[1] == 'VBZ' or \
+                            stat[0] == 5 and cexr[1] == 'VBP':
+                        tex['rep'] = cexr
+                    elif stat[0] == 4 and cexr[1] == 'VBP':
+                        tex['rep'] = cexr
+                    elif stat[0] == 3 and cexr[1] == 'VBD':
+                        tex['rep'] = cexr
+                    elif stat[0] != 0:
+                        tex['rep'][0] = ''
+                    else:
+                        tex['rep'] = cexr
+
+            elif te == 'ADJP':
+                if child.elem in ['ADJP', 'JJ']:
+                    tex['rep'] = cexr
+            elif te == 'ADVP':
+                if child.elem in ['ADVP', 'RB', 'RBR']:
+                    tex['rep'] = cexr
+
+        if tree.children[-1].elem == 'POS':
+            tree.elem = 'PRP$'
+            tex['rep'][0] = ''
+
+
+def get_common_ans(tree, arg):
+    if len(tree.children) == 0:
+        arg['ansl'] += arg['tk'][int(tree.elem)]['l'] + ' '
+        arg['anst'] = arg['tk'][int(tree.elem)]['t'] + ' ' \
+            if tree.parent.elem in ['VBG', 'VBN'] else arg['ansl']
+    for child in tree.children:
+        if child.extra['tag'] == arg['tag']:
+            get_common_ans(child, arg)
+        else:
+            arg['anst'] += child.elem + ' '
+            arg['ansl'] += child.elem + ' '
+
+
+def get_root_tree(arg):
+    dfs_root_tree(arg['tree'], arg)
+
+
+def addCluster(inMap, retList, title, dictc={}):
+    if title not in inMap:
+        retId = inMap[title] = len(retList)
+        retList.append(dict({'id': retId, 'count': 1, 'title': title}, **dictc))
+        flag = True
+    else:
+        retId = inMap[title]
+        retList[retId]['count'] += 1
+        flag = retList[retId]['count'] <= 10
+    return (retId, flag)
+
+
+def addResult(arg, title):
+    (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title)
+    if flag:
+        markSent = cleaned_sentence(arg['sent'], arg['keypos'])
+        arg['strlist'].append({'sentence': markSent, 'sen': retId})
+
+
+def wordget(child):
+    return child.extra['rep'][0] + ' '
+
+
+def modeget(child, arg, c, ad=False):
+    c['v'] &= child.elem[0].isalpha()
+    c['v'] &= child.elem not in ['MD', 'CC']
+    c['w'] += 1
+    e = child.elem
+    if e in ['CD', 'DT', 'PRP$']:
+        c['w'] -= 1
+        return ''
+    elif ad and e in ['VBG', 'VBD']:
+        c['g'] |= 1
+        return e + ' '
+    elif e in ['ADVP']:
+        c['sv'] -= 1
+        if c['sv'] >= 0:
+            return disp.get(e, e) + ' '
+        else:
+            c['w'] -= 1
+            return ''
+    elif len(child.children) == 1 and len(child.children[0].children) == 0:
+        tk = arg['tk'][int(child.children[0].elem)]['l']
+        e = getq(child.elem)
+        if e in ['IN', 'TO']:
+            return tk + ' '
+        if e in ['NN', 'JJ']:
+            if e == 'NN':
+                c['sn'] -= 1
+            if e == 'JJ':
+                c['sj'] -= 1
+            if c['sn'] >= 0 and c['sj'] >= 0:
+                return disp.get(e, e) + ' '
+            else:
+                c['w'] -= 1
+                return ''
+        elif e in ['RB']:
+            if tk == 'not' or c['sv'] <= 0:
+                c['w'] -= 1
+                return ''
+            else:
+                c['sv'] -= 1
+                return disp.get(e, e) + ' '
+        elif tk in ['be']:
+            c['w'] -= 1
+            return tk + ' '
+        elif tk in ['have']:
+            c['w'] -= 1
+            return ''
+        else:
+            return disp.get(e, e) + ' '
+    else:
+        return disp.get(e, e) + ' '
+
+
+def comnex_add(node, arg):
+    q = {'mod': "", 'word': "", 'ch': {'v': True, 'w': 0, 'g': 0, 'sn': 1, 'sj': 1, 'sv': 1}}
+    comone = arg['common'].elem
+    ed = vm = br = advp = False
+    childe = [child.elem for child in node.children]
+    if node.parent.elem == 'VP' and node.elem == 'VP':
+        checkbe = node.parent.children[0].children
+        ts = arg['common'].extra['rep'][1]
+        if len(checkbe[0].children) == 0:
+            wd = arg['tk'][int(checkbe[0].elem)]['l']
+            if ts == 'VBN' and wd in ['be']:
+                q['mod'] += 'be '
+                ed = True
+            # passive
+            if ts == 'VBN' and wd in ['have'] or ts == 'VBG' and wd in ['be'] \
+                    or ts == 'VB' and wd in ['will', 'would', 'to', 'do']:
+                br = True
+            # break later
+    # verb example
+    if node.elem == 'PP':
+        return False
+    # pp not count
+    if node.elem in ['S', 'SBAR'] and ('ADJP' in childe or 'JJ' in childe):
+        return False
+    # make it clear (that)
+    if comone in ['ADJP', 'JJ']:
+        q['ch']['sj'] -= 1
+    if node.elem == 'NP':
+        if getq(comone) in ['NN', 'NP']:
+            q['ch']['sn'] -= 1
+    # complicate NP
+    if node.elem == 'ADJP' and comone in ['ADJP', 'JJ'] and node.parent.elem == 'VP':
+        checkbe = node.parent.children[0].children
+        if len(checkbe[0].children) == 0:
+            wd = arg['tk'][int(checkbe[0].elem)]['l']
+            if wd in ['be']:
+                q['mod'] += 'be '
+    # be clear that
+    if node.elem == 'NP' and getq(comone) in ('VB', 'VP'):
+        vm = True
+    # keep the tense
+    for child in node.children:
+        if child.extra['tag'] == arg['tag']:
+            if ed or vm:
+                sub = arg['anst']
+            else:
+                sub = arg['ansl']
+            # q['mod'] += sub + '(%s) ' % arg['common'].elem
+            q['mod'] += sub
+        # the common node
+        elif comone in ['ADVP', 'RB', 'RBR'] and \
+                (getq(child.elem) not in ['VB', 'VP', 'JJ'] and child.elem not in ['ADJP']):
+            pass
+        elif child.elem == 'PP':
+            for child2 in child.children:
+                q['mod'] += modeget(child2, arg, q['ch'], True)
+                if q['ch']['g'] > 0:
+                    break
+        # PP extend
+        elif child.elem in ['S'] and len(child.children) == 1 and child.children[0].elem == "VP":
+            for child2 in child.children[0].children:
+                q['mod'] += modeget(child2, arg, q['ch'], True)
+                if q['ch']['g'] > 0:
+                    break
+        # S extend
+        elif comone in ['NN', 'NP'] and child.elem in ['S', 'SBAR']:
+            pass
+        # N S forbid
+        # elif comone in ['ADJP', 'JJ'] and child.elem in ['S', 'SBAR'] and q['ch']['w'] == 0:
+        #    pass
+        # J forbid
+        elif child.elem in ['ADVP', 'RB', 'RBR']:
+            if comone not in ['ADVP', 'RB', 'RBR']:
+                advp = True
+        # ignore S after N
+        else:
+            q['mod'] += modeget(child, arg, q['ch'])
+
+    if q['ch']['v'] and q['ch']['w'] > 0:
+        addResult(arg, q['mod'])
+
+    if not ed and not vm and advp:
+        q = {'mod': "", 'word': "", 'ch': {'v': True, 'w': 0, 'g': 0, 'sn': 1, 'sj': 1, 'sv': 1}}
+        for child in node.children:
+            if child.extra['tag'] == arg['tag']:
+                sub = arg['ansl']
+                # q['mod'] += sub + '(%s) ' % arg['common'].elem
+                q['mod'] += sub
+            elif child.elem in ['ADVP', 'RB', 'RBR']:
+                q['mod'] += modeget(child, arg, q['ch'])
+            else:
+                pass
+        if q['ch']['v'] and q['ch']['w'] > 0:
+            addResult(arg, q['mod'])
+
+    return 0 if ed or vm or br else 100
+
+
+def find_common(arg):
+    node = arg['nodes'][arg['keypos'][0]].parent
+    lca = [node, node.depth]
+    for i, k in enumerate(arg['keypos']):
+        if i == 0:
+            node = arg['nodes'][k]
+            while node:
+                node.extra['tag'] = arg['tag']
+                node = node.parent
+        else:
+            node = arg['nodes'][k]
+            while node.extra['tag'] != arg['tag']:
+                node = node.parent
+            if node.depth < lca[1]:
+                lca = [node, node.depth]
+    return lca[0]
+
+
+def comnex_find(arg):
+    node = arg['common'].parent
+    brk = 10
+    while node.elem != '@':
+        if node.extra['rep'][0] not in arg['keylm']:
+            brk = min(brk, 1)
+        brk = min(brk - 1, comnex_add(node, arg))
+        if brk == 0:
+            return
+        node = node.parent
+
+
+def check_find(key, tokens, arg):
+    get_root_tree(arg)
+
+    iters = []
+    for k in key:
+        iterlist = []
+        for i, t in enumerate(arg['tk']):
+            if tokens[k]['lemma'] == t['l']:
+                iterlist.append(i)
+        iters.append(iterlist)
+
+    for tag, qkey in enumerate(product(*iters)):
+        arg['keypos'] = qkey
+        arg['keytk'] = [arg['tk'][k] for k in qkey]
+        arg['keylm'] = [k['l'] for k in arg['keytk']]
+        arg['tag'] = tag
+        arg['common'] = find_common(arg)
+        arg['ansl'] = arg['anst'] = ''
+        get_common_ans(arg['common'], arg)
+        comnex_find(arg)
+
+
+def result_part(retJson):
+    if len(retJson['desc']['sen']) > 20:
+        # retJson['desc']['sen'] = retJson['desc']['sen'][:20] + retJson['desc']['sen'][-1:]
+        retJson['desc']['sen'] = retJson['desc']['sen'][:20]
+        senlist = [sen['id'] for sen in retJson['desc']['sen']]
+        retJson['result'] = [result for result in retJson['result'] if result['sen'] in senlist]
+
+
+def get_comnex_db(tokens, key):
+    retJson = {'result': [], 'desc': {'sen': []}}
+    senmap = {}
+
+    keys = [tokens[k]['lemma'] for k in key]
+    keys.sort(key=lambda word: -len(word))
+    rs = cl.find({'tokens.l': {'$all': keys}})
+
+    for sen in rs:
+        tree0 = sen['tree0']
+        tk = sen['tokens']
+        tree = transfer_Node_i(tree0)
+        halfSent = [w['t'] for w in tk]
+        arg = {
+            'tk': tk,
+            'tree': tree[0],
+            'nodes': tree[1],
+            'senmap': senmap,
+            'senlist': retJson['desc']['sen'],
+            'strlist': retJson['result'],
+            'sent': halfSent,
+        }
+        check_find(key, tokens, arg)
+
+    retJson['desc']['sen'].sort(key=lambda word: -word['count'] if word['title'] != '_others_' else 0)
+    result_part(retJson)
+    return retJson
+
+
+def get_comnex_inter(sentence, key):
+    rquest = parse(sentence)
+    tokens = rquest['sentences'][0]['tokens']
+
+    return get_comnex_db(tokens, key)

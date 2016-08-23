@@ -7,8 +7,8 @@ from search.parse import transfer_Node_i, parse, tree_format
 from search.clean_sentence import cleaned_sentence
 from search.util import getq, check_equal
 from pymongo import MongoClient
-client = MongoClient('166.111.139.42')
-# client = MongoClient('127.0.0.1')
+# client = MongoClient('166.111.139.42')
+client = MongoClient('127.0.0.1')
 db = client.test
 db.authenticate('test', 'test')
 cl = db.syntax2
@@ -85,7 +85,7 @@ class QtreeFinder(object):
             self.nodeList.append(nodeq)
 
         self.add_result(listq[0])
-    
+
     def deep_check(self, qtree):
         if qtree.elem in ['_comma_', '.']:
             self.checker = False
@@ -117,24 +117,23 @@ class QtreeFinder(object):
         childcnt[0] = 0
         for child in qtree.children:
             self.get_more_result(child, childcnt, depth if depth == 0 and child in self.nodeList else depth + 1)
-        
+
         if self.outputArg < len(self.qkey) - 1:
             if self.resultList2 and self.resultList2[-1] not in ['', '...', '|']:
                 self.resultList2.append('')
             else:
                 self.resultList2.append('|')
                 self.cost += 1
-        
 
     def add_result(self, qtree):
         self.result = qtree
         self.get_more_result(qtree, [0, 0])
-        
+
         if self.checker and self.cost <= max(len(self.qkey) * 2, 5):
             self.resultSent2 = ' '.join(self.resultList2)
         else:
             self.resultSent2 = '_others_'
-        
+
         self.resultSent = ' '.join([self.tk[i]['l'] for i in range(self.qkey[0], self.qkey[-1] + 1)])
 
     def debug(self, qtree, depth=0):
@@ -233,14 +232,11 @@ def get_qtree_db(tree, tokens, key, ctype):
     senlist2 = retJson['desc']['sen']
 
     strlist = retJson['result']
-    cnt = 0
-    tt = rs.count()
     for sen in rs:
         sent = sen['tree0']
         tk = sen['tokens']
         qtree = transfer_Node_i(sent)
         tp = check_find(tree, key, tokens, qtree, tk, ctype)
-        cnt += 1
         if tp:
             # senId = addCluster(senmap, senlist, tp.resultSent)
             (senId2, flag1) = addCluster(senmap2, senlist2, tp.resultSent2, {'len': tp.cost})
@@ -248,7 +244,7 @@ def get_qtree_db(tree, tokens, key, ctype):
                 markSent = cleaned_sentence([w['t'] for w in tk], tp.qkey)
                 resultDict = {'sentence': markSent, 'sen': senId2}
                 strlist.append(resultDict)
-            
+
     senlist2.sort(key=lambda word: -word['count'] * 100 + word['len'] if word['title'] != '_others_' else 0)
     result_part(retJson)
     return retJson
