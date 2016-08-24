@@ -47,6 +47,7 @@ def dfs_root_tree(tree, arg):
                 if child.elem == 'TO':
                     stat[0] = 1
                 elif getq(child.elem) == 'VB':
+                    tex['rep'] = cexr
                     tkc = tk[int(child.children[0].elem)]['l']
                     if tkc == 'have':
                         stat[0] = 2
@@ -59,13 +60,13 @@ def dfs_root_tree(tree, arg):
                     if tkc in ['will', 'would']:
                         stat[0] = 5
                 elif child.elem == 'VP':
-                    if stat[0] == 2 and cexr[1] == 'VBD' or \
-                            stat[0] == 3 and cexr[1] == 'VBZ' or \
+                    if stat[0] == 2 and cexr[1] == 'VBN' or \
+                            stat[0] == 3 and cexr[1] == 'VBN' or \
                             stat[0] == 5 and cexr[1] == 'VBP':
                         tex['rep'] = cexr
                     elif stat[0] == 4 and cexr[1] == 'VBP':
                         tex['rep'] = cexr
-                    elif stat[0] == 3 and cexr[1] == 'VBD':
+                    elif stat[0] == 3 and cexr[1] == 'VBG':
                         tex['rep'] = cexr
                     elif stat[0] != 0:
                         tex['rep'][0] = ''
@@ -124,15 +125,18 @@ def wordget(child):
     return child.extra['rep'][0] + ' '
 
 
-def modeget(child, arg, c, ad=False):
+def modeget(child, arg, c, ad=''):
     c['v'] &= child.elem[0].isalpha()
     c['v'] &= child.elem not in ['MD', 'CC']
     c['w'] += 1
     e = child.elem
-    if e in ['CD', 'DT', 'PRP$']:
+    if e in ['CD', 'PDT', 'QP', 'PRN', 'DT', 'PRP$', 'POS']:
         c['w'] -= 1
         return ''
-    elif ad and e in ['VBG', 'VBD']:
+    elif ad == 'V N' and e in ['PRT']:
+        c['w'] -= 1
+        return ''
+    elif ad == 'VBG' and e in ['VBG', 'VBN']:
         c['g'] |= 1
         return e + ' '
     elif e in ['ADVP']:
@@ -147,11 +151,12 @@ def modeget(child, arg, c, ad=False):
         e = getq(child.elem)
         if e in ['IN', 'TO']:
             return tk + ' '
-        if e in ['NN', 'JJ']:
+        if e in ['NN', 'JJ'] or (ad == 'N V' and child.elem in ['VBG', 'VBN']):
             if e == 'NN':
                 c['sn'] -= 1
-            if e == 'JJ':
+            if e == 'JJ' or (ad == 'N V' and child.elem in ['VBG', 'VBN']):
                 c['sj'] -= 1
+                e = 'JJ'
             if c['sn'] >= 0 and c['sj'] >= 0:
                 return disp.get(e, e) + ' '
             else:
@@ -164,7 +169,7 @@ def modeget(child, arg, c, ad=False):
             else:
                 c['sv'] -= 1
                 return disp.get(e, e) + ' '
-        elif tk in ['be']:
+        if tk in ['be']:
             c['w'] -= 1
             return tk + ' '
         elif tk in ['have']:
@@ -173,12 +178,19 @@ def modeget(child, arg, c, ad=False):
         else:
             return disp.get(e, e) + ' '
     else:
-        return disp.get(e, e) + ' '
+        if e == 'ADJP':
+            c['sj'] -= 1
+        if c['sj'] >= 0:
+            return disp.get(e, e) + ' '
+        else:
+            c['w'] -= 1
+            return ''
 
 
 def comnex_add(node, arg):
     q = {'mod': "", 'word': "", 'ch': {'v': True, 'w': 0, 'g': 0, 'sn': 1, 'sj': 1, 'sv': 1}}
     comone = arg['common'].elem
+    ad = ''
     ed = vm = br = advp = False
     childe = [child.elem for child in node.children]
     if node.parent.elem == 'VP' and node.elem == 'VP':
@@ -190,6 +202,7 @@ def comnex_add(node, arg):
                 q['mod'] += 'be '
                 ed = True
             # passive
+            print ts
             if ts == 'VBN' and wd in ['have'] or ts == 'VBG' and wd in ['be'] \
                     or ts == 'VB' and wd in ['will', 'would', 'to', 'do']:
                 br = True
@@ -206,7 +219,11 @@ def comnex_add(node, arg):
     if node.elem == 'NP':
         if getq(comone) in ['NN', 'NP']:
             q['ch']['sn'] -= 1
-    # complicate NP
+            ad = 'N V'
+        # complicate NP
+        if getq(comone) in ['VB', 'VP']:
+            vm = True
+        # keep the tense
     if node.elem == 'ADJP' and comone in ['ADJP', 'JJ'] and node.parent.elem == 'VP':
         checkbe = node.parent.children[0].children
         if len(checkbe[0].children) == 0:
@@ -214,9 +231,9 @@ def comnex_add(node, arg):
             if wd in ['be']:
                 q['mod'] += 'be '
     # be clear that
-    if node.elem == 'NP' and getq(comone) in ('VB', 'VP'):
-        vm = True
-    # keep the tense
+    if node.elem == 'VP' and getq(comone) in ('NN', 'NP'):
+        ad = 'V N'
+    # cut down trees
     for child in node.children:
         if child.extra['tag'] == arg['tag']:
             if ed or vm:
@@ -226,18 +243,23 @@ def comnex_add(node, arg):
             # q['mod'] += sub + '(%s) ' % arg['common'].elem
             q['mod'] += sub
         # the common node
+        elif getq(comone) in ['NN', 'NP'] and child.elem == 'VP':
+            checkbe = node.parent.children[0].children
+            if len(checkbe[0].children) == 0:
+                wd = arg['tk'][int(checkbe[0].elem)]['l']
+                q['ch']['v'] &= wd not in ['be']
         elif comone in ['ADVP', 'RB', 'RBR'] and \
                 (getq(child.elem) not in ['VB', 'VP', 'JJ'] and child.elem not in ['ADJP']):
             pass
         elif child.elem == 'PP':
             for child2 in child.children:
-                q['mod'] += modeget(child2, arg, q['ch'], True)
+                q['mod'] += modeget(child2, arg, q['ch'], 'VBG')
                 if q['ch']['g'] > 0:
                     break
         # PP extend
         elif child.elem in ['S'] and len(child.children) == 1 and child.children[0].elem == "VP":
             for child2 in child.children[0].children:
-                q['mod'] += modeget(child2, arg, q['ch'], True)
+                q['mod'] += modeget(child2, arg, q['ch'], 'VBG')
                 if q['ch']['g'] > 0:
                     break
         # S extend
@@ -252,12 +274,13 @@ def comnex_add(node, arg):
                 advp = True
         # ignore S after N
         else:
-            q['mod'] += modeget(child, arg, q['ch'])
+            q['mod'] += modeget(child, arg, q['ch'], ad)
 
     if q['ch']['v'] and q['ch']['w'] > 0:
         addResult(arg, q['mod'])
 
-    if not ed and not vm and advp:
+    if not ed and not vm and advp and \
+            (comone in ['VP', 'ADJP'] or getq(comone) in ['VB', 'JJ']):
         q = {'mod': "", 'word': "", 'ch': {'v': True, 'w': 0, 'g': 0, 'sn': 1, 'sj': 1, 'sv': 1}}
         for child in node.children:
             if child.extra['tag'] == arg['tag']:
@@ -286,6 +309,7 @@ def find_common(arg):
         else:
             node = arg['nodes'][k]
             while node.extra['tag'] != arg['tag']:
+                node.extra['tag'] = arg['tag']
                 node = node.parent
             if node.depth < lca[1]:
                 lca = [node, node.depth]
@@ -293,7 +317,12 @@ def find_common(arg):
 
 
 def comnex_find(arg):
-    node = arg['common'].parent
+    # print arg['common'].extra
+    if not arg['common'].extra['rep'][0]:
+         return
+    # if len(arg['keypos']) > 1:
+    #    addResult(arg, arg['ansl'])
+    node = arg['common']
     brk = 10
     while node.elem != '@':
         if node.extra['rep'][0] not in arg['keylm']:
