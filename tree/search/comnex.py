@@ -35,7 +35,7 @@ def dfs_root_tree(tree, arg):
         for child in tree.children:
             cexr = child.extra['rep']
             if te == 'NP':
-                if child.elem in ['NN', 'NP']:
+                if getq(child.elem) in ['NN', 'NP']:
                     tex['rep'] = cexr
                 elif child.elem == 'PP':
                     c = child.children[0]
@@ -114,77 +114,89 @@ def addCluster(inMap, retList, title, dictc={}):
     return (retId, flag)
 
 
-def addResult(arg, title):
-    (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title)
-    if flag:
-        markSent = cleaned_sentence(arg['sent'], arg['keypos'])
-        arg['strlist'].append({'sentence': markSent, 'sen': retId})
+def addResult(arg, q):
+    title = q['mod']
+    if arg['type'] == 0:
+        (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title)
+        if flag:
+            markSent = cleaned_sentence(arg['sent'], arg['keypos'])
+            arg['strlist'].append({'sentence': markSent, 'sen': retId})
+    elif arg['type'] == 1:
+        if title == arg['title']:
+            title = q['word']
+            (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title)
+            if flag:
+                markSent = cleaned_sentence(arg['sent'], arg['keypos'])
+                arg['strlist'].append({'sentence': markSent, 'sen': retId})
 
 
-def wordget(child):
-    return child.extra['rep'][0] + ' '
-
-
-def modeget(child, arg, c, ad=''):
+def modeget(child, arg, q, ad=''):
+    c = q['ch']
     c['v'] &= child.elem[0].isalpha()
     c['v'] &= child.elem not in ['MD', 'CC']
     c['w'] += 1
     e = child.elem
+    r = child.extra['rep'][0]
+    if not r:
+        r = '_other_'
     if e in ['CD', 'PDT', 'QP', 'PRN', 'DT', 'PRP$', 'POS']:
         c['w'] -= 1
-        return ''
     elif ad == 'V N' and e in ['PRT']:
         c['w'] -= 1
-        return ''
     elif ad == 'VBG' and e in ['VBG', 'VBN']:
         c['g'] |= 1
-        return e + ' '
+        q['mod'] += e + ' '
+        q['word'] += r + ' '
     elif e in ['ADVP']:
         c['sv'] -= 1
         if c['sv'] >= 0:
-            return disp.get(e, e) + ' '
+            q['mod'] += disp.get(e, e) + ' '
+            q['word'] += r + ' '
         else:
             c['w'] -= 1
-            return ''
     elif len(child.children) == 1 and len(child.children[0].children) == 0:
         tk = arg['tk'][int(child.children[0].elem)]['l']
         e = getq(child.elem)
         if e in ['IN', 'TO']:
-            return tk + ' '
-        if e in ['NN', 'JJ'] or (ad == 'N V' and child.elem in ['VBG', 'VBN']):
+            q['mod'] += tk + ' '
+            q['word'] += tk + ' '
+        elif e in ['NN', 'JJ'] or (ad == 'N V' and child.elem in ['VBG', 'VBN']):
             if e == 'NN':
                 c['sn'] -= 1
             if e == 'JJ' or (ad == 'N V' and child.elem in ['VBG', 'VBN']):
                 c['sj'] -= 1
                 e = 'JJ'
             if c['sn'] >= 0 and c['sj'] >= 0:
-                return disp.get(e, e) + ' '
+                q['mod'] += disp.get(e, e) + ' '
+                q['word'] += r + ' '
             else:
                 c['w'] -= 1
-                return ''
         elif e in ['RB']:
             if tk == 'not' or c['sv'] <= 0:
                 c['w'] -= 1
-                return ''
             else:
                 c['sv'] -= 1
-                return disp.get(e, e) + ' '
-        if tk in ['be']:
-            c['w'] -= 1
-            return tk + ' '
-        elif tk in ['have']:
-            c['w'] -= 1
-            return ''
+                q['mod'] += disp.get(e, e) + ' '
+                q['word'] += r + ' '
+        elif e in ['VB']:
+            if tk in ['be']:
+                c['w'] -= 1
+            elif tk in ['have']:
+                c['w'] -= 1
+            else:
+                q['mod'] += disp.get(e, e) + ' '
+                q['word'] += r + ' '
         else:
-            return disp.get(e, e) + ' '
+            q['mod'] += disp.get(e, e) + ' '
+            q['word'] += r + ' '
     else:
         if e == 'ADJP':
             c['sj'] -= 1
         if c['sj'] >= 0:
-            return disp.get(e, e) + ' '
+            q['mod'] += disp.get(e, e) + ' '
+            q['word'] += r + ' '
         else:
             c['w'] -= 1
-            return ''
 
 
 def comnex_add(node, arg):
@@ -200,9 +212,10 @@ def comnex_add(node, arg):
             wd = arg['tk'][int(checkbe[0].elem)]['l']
             if ts == 'VBN' and wd in ['be']:
                 q['mod'] += 'be '
+                q['word'] += 'be '
                 ed = True
             # passive
-            print ts
+            # print ts
             if ts == 'VBN' and wd in ['have'] or ts == 'VBG' and wd in ['be'] \
                     or ts == 'VB' and wd in ['will', 'would', 'to', 'do']:
                 br = True
@@ -230,6 +243,7 @@ def comnex_add(node, arg):
             wd = arg['tk'][int(checkbe[0].elem)]['l']
             if wd in ['be']:
                 q['mod'] += 'be '
+                q['word'] += 'be '
     # be clear that
     if node.elem == 'VP' and getq(comone) in ('NN', 'NP'):
         ad = 'V N'
@@ -242,6 +256,7 @@ def comnex_add(node, arg):
                 sub = arg['ansl']
             # q['mod'] += sub + '(%s) ' % arg['common'].elem
             q['mod'] += sub
+            q['word'] += sub
         # the common node
         elif getq(comone) in ['NN', 'NP'] and child.elem == 'VP':
             checkbe = node.parent.children[0].children
@@ -253,13 +268,13 @@ def comnex_add(node, arg):
             pass
         elif child.elem == 'PP':
             for child2 in child.children:
-                q['mod'] += modeget(child2, arg, q['ch'], 'VBG')
+                modeget(child2, arg, q, 'VBG')
                 if q['ch']['g'] > 0:
                     break
         # PP extend
         elif child.elem in ['S'] and len(child.children) == 1 and child.children[0].elem == "VP":
             for child2 in child.children[0].children:
-                q['mod'] += modeget(child2, arg, q['ch'], 'VBG')
+                modeget(child2, arg, q, 'VBG')
                 if q['ch']['g'] > 0:
                     break
         # S extend
@@ -274,10 +289,10 @@ def comnex_add(node, arg):
                 advp = True
         # ignore S after N
         else:
-            q['mod'] += modeget(child, arg, q['ch'], ad)
+            modeget(child, arg, q, ad)
 
     if q['ch']['v'] and q['ch']['w'] > 0:
-        addResult(arg, q['mod'])
+        addResult(arg, q)
 
     if not ed and not vm and advp and \
             (comone in ['VP', 'ADJP'] or getq(comone) in ['VB', 'JJ']):
@@ -287,12 +302,13 @@ def comnex_add(node, arg):
                 sub = arg['ansl']
                 # q['mod'] += sub + '(%s) ' % arg['common'].elem
                 q['mod'] += sub
+                q['word'] += sub
             elif child.elem in ['ADVP', 'RB', 'RBR']:
-                q['mod'] += modeget(child, arg, q['ch'])
+                modeget(child, arg, q)
             else:
                 pass
         if q['ch']['v'] and q['ch']['w'] > 0:
-            addResult(arg, q['mod'])
+            addResult(arg, q)
 
     return 0 if ed or vm or br else 100
 
@@ -319,10 +335,10 @@ def find_common(arg):
 def comnex_find(arg):
     # print arg['common'].extra
     if not arg['common'].extra['rep'][0]:
-         return
+        return
     # if len(arg['keypos']) > 1:
     #    addResult(arg, arg['ansl'])
-    node = arg['common']
+    node = arg['common'].parent
     brk = 10
     while node.elem != '@':
         if node.extra['rep'][0] not in arg['keylm']:
@@ -363,7 +379,7 @@ def result_part(retJson):
         retJson['result'] = [result for result in retJson['result'] if result['sen'] in senlist]
 
 
-def get_comnex_db(tokens, key):
+def get_comnex_db(tokens, key, args):
     retJson = {'result': [], 'desc': {'sen': []}}
     senmap = {}
 
@@ -376,7 +392,7 @@ def get_comnex_db(tokens, key):
         tk = sen['tokens']
         tree = transfer_Node_i(tree0)
         halfSent = [w['t'] for w in tk]
-        arg = {
+        arg = dict({
             'tk': tk,
             'tree': tree[0],
             'nodes': tree[1],
@@ -384,7 +400,7 @@ def get_comnex_db(tokens, key):
             'senlist': retJson['desc']['sen'],
             'strlist': retJson['result'],
             'sent': halfSent,
-        }
+        }, **args)
         check_find(key, tokens, arg)
 
     retJson['desc']['sen'].sort(key=lambda word: -word['count'] if word['title'] != '_others_' else 0)
@@ -392,8 +408,8 @@ def get_comnex_db(tokens, key):
     return retJson
 
 
-def get_comnex_inter(sentence, key):
+def get_comnex_inter(sentence, key, ctype):
     rquest = parse(sentence)
     tokens = rquest['sentences'][0]['tokens']
 
-    return get_comnex_db(tokens, key)
+    return get_comnex_db(tokens, key, {'title': sentence + ' ', 'type': ctype})

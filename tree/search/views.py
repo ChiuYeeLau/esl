@@ -63,8 +63,12 @@ def search4(request, stype):
         if message != '':
             if stype == 0:
                 strlist = get_extree_inter(message, key)
+            elif stype == 1:
+                strlist = get_comnex_inter(message, key, 0)
+            elif stype == 2:
+                strlist = get_comnex_inter(message, key, 1)
             else:
-                strlist = get_comnex_inter(message, key)
+                strlist = {}
         else:
             strlist = {}
     else:
