@@ -27,27 +27,38 @@ $(document).ready(function() {
             return;
         }
         var $btn = $(this).button('loading');
-
-        $.getJSON("http://" + hostAddr + $(this).attr('data-url'), {"sentence":sentence, "word_pos":word_pos},
-            function(data){
-                $('.num-results').text(data.result.length);
-                $('.output').empty();
-                $(data.desc.sen).each(function(_, g) {
-                    $('<li>').html(g.title + ' (' + g.count + ')').append($('<ul class="sentence-group">').attr('data-id', g.id)).appendTo('.output');
+        function jsonBack(data){
+            $('.num-results').text(data.result.length);
+            $('.output').empty();
+            $(data.desc.sen).each(function(_, g) {
+                var li = $('<li>').html(g.display + ' (' + g.count + ')').
+                    append($('<ul class="sentence-group">').attr('data-id', g.id)).appendTo('.output');
+                li.find('a').click(function(){
+                    // console.log($(this).attr('pos'));
+                    var new_pos = "";
+                    var i = 0;
+                    for (i=0; i < g.pos.length; i++) {
+                        new_pos += g.pos[i] + " ";
+                    }
+                    $.getJSON("http://" + hostAddr + '/search8/',
+                              {"sentence":g.title, "word_pos":new_pos, "next_pos":$(this).attr('pos')}, jsonBack);
                 });
-                $(data.result).each(function(_, r) {
-                    /*
-                    var words = r.sentence.split(' '),
-                        pos = r.list.split(' ');
-                    $(pos).each(function(_, p) {
-                        words[Number(p)] = '<span>' + words[Number(p)] + '</span>';
-                    });
-                    $('<li class="sentence">').html(words.join(' ')).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
-                    */
-                    $('<li class="sentence">').html(r.sentence).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
-                });
-                $btn.button('reset');
             });
+            $(data.result).each(function(_, r) {
+                /*
+                var words = r.sentence.split(' '),
+                    pos = r.list.split(' ');
+                $(pos).each(function(_, p) {
+                    words[Number(p)] = '<span>' + words[Number(p)] + '</span>';
+                });
+                $('<li class="sentence">').html(words.join(' ')).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
+                */
+                $('<li class="sentence">').html(r.sentence).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
+            });
+            $btn.button('reset');
+        }
+
+        $.getJSON("http://" + hostAddr + $(this).attr('data-url'), {"sentence":sentence, "word_pos":word_pos}, jsonBack);
        // $('.status-box').val('');
     });
 

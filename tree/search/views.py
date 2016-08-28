@@ -66,7 +66,8 @@ def search4(request, stype):
             elif stype == 1:
                 strlist = get_comnex_inter(message, key, 0)
             elif stype == 2:
-                strlist = get_comnex_inter(message, key, 1)
+                nxt = int(request.GET.get('next_pos', -1))
+                strlist = get_comnex_inter(message, key, 1, nxt)
             else:
                 strlist = {}
         else:
