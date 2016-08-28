@@ -140,7 +140,7 @@ def modeget(child, arg, q, ad=''):
         c['w'] -= 1
     elif ad == 'V N' and e in ['PRT']:
         c['w'] -= 1
-        q['word'].append(r)
+        q['word'].append(child.extra['rep']['l'])
     elif ad == 'VBG' and e in ['VBG', 'VBN']:
         c['g'] |= 1
         q['mod'].append(e)
@@ -156,6 +156,7 @@ def modeget(child, arg, q, ad=''):
         tk = arg['tk'][int(child.children[0].elem)]['l']
         e = getq(child.elem)
         if e in ['IN', 'TO']:
+            q['pos'].append(len(q['mod']))
             q['mod'].append(tk)
             q['word'].append(tk)
         elif e in ['NN', 'JJ']:
@@ -218,7 +219,7 @@ def dfs_get(node, arg, q, ad, flag):
                 sub = arg['ansm']
                 # q['mod'] += sub + '(%s) ' % arg['common'].elem
                 lmod = len(q['mod'])
-                q['pos'] += range(lmod, len(sub) + lmod)
+                q['pos'] += [lmod + i for i in arg['ansp']]
                 q['mod'] += sub
                 if child.elem == 'PP':
                     qmod = q['mod'][:]
@@ -313,6 +314,7 @@ def comnex_add(node, arg):
     if node == arg['common']:
         arg['ansm'] = q['mod']
         arg['answ'] = q['word']
+        arg['ansp'] = q['pos']
 
     if (q['ch']['v'] and q['ch']['w'] > 0) or (node == arg['common'] and len(arg['keylm']) > 1):
         addResult(arg, q)
@@ -325,7 +327,7 @@ def comnex_add(node, arg):
                 sub = arg['ansm']
                 # q['mod'] += sub + '(%s) ' % arg['common'].elem
                 lmod = len(q['mod'])
-                q['pos'] += range(lmod, len(sub) + lmod)
+                q['pos'] += [lmod + i for i in arg['ansp']]
                 q['mod'] += sub
                 q['word'] += sub
             elif child.elem in ['ADVP', 'RB', 'RBR']:
