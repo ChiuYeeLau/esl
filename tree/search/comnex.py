@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import json
+import time
 from itertools import product
 from search.parse import transfer_Node_i, parse
 from search.clean_sentence import cleaned_sentence
@@ -14,6 +15,8 @@ conjugateDict = json.load(f)
 disp = {'SBAR': 'S', 'ADVP': 'ADV', 'ADJP': 'ADJ', 'JJ': 'ADJ', 'RB': 'ADV',
         'NN': 'N', 'NP': 'N', 'VP': 'V', 'VB': 'V'}
 niltk = {'l': '', 't': '', 'p': '', 'q': ''}
+TIMING = [.0] * 7
+CTIME = [.0] * 6
 
 
 def dfs_root_tree(tree, arg):
@@ -76,6 +79,9 @@ def dfs_root_tree(tree, arg):
                     tex['rep'] = cexr
             elif te == 'ADVP':
                 if child.elem in ['ADVP', 'RB', 'RBR']:
+                    tex['rep'] = cexr
+            elif te == 'PP':
+                if getq(child.elem) in ['VP', 'VB', 'NP', 'NN']:
                     tex['rep'] = cexr
             elif te == 'PRT':
                 tex['rep']['l'] += cexr['l'] + ' '
@@ -276,7 +282,6 @@ def comnex_add(node, arg):
                 q['word'].append('be')
                 ed = True
             # passive
-            # print ts
             if ts == 'VBN' and wd in ['have'] or ts == 'VBG' and wd in ['be'] \
                     or ts == 'VB' and wd in ['will', 'would', 'to', 'do']:
                 br = True
@@ -384,6 +389,8 @@ def check_find(key, tokens, arg):
         iters.append(iterlist)
 
     get_root_tree(arg)
+    TIMING[2] = time.time()
+    CTIME[2] += TIMING[2] - TIMING[1]
 
     for tag, qkey in enumerate(product(*iters)):
         arg['keypos'] = qkey
@@ -391,7 +398,11 @@ def check_find(key, tokens, arg):
         arg['keylm'] = [k['l'] for k in arg['keytk']]
         arg['tag'] = tag
         arg['common'] = find_common(arg)
+        TIMING[3] = time.time()
+        CTIME[3] += TIMING[3] - TIMING[2]
         comnex_find(arg)
+        TIMING[2] = time.time()
+        CTIME[4] += TIMING[2] - TIMING[3]
 
 
 def result_part(retJson):
@@ -403,16 +414,26 @@ def result_part(retJson):
 
 
 def get_comnex_db(tokens, key, args):
+    global TIMING
+    TIMING = [.0] * 7
+
+    global CTIME
+    CTIME = [.0] * 6
+    TIMING[6] = time.time()
     retJson = {'result': [], 'desc': {'sen': []}}
     senmap = {}
 
     keys = [tokens[k]['lemma'] for k in key]
     keys.sort(key=lambda word: -len(word))
     rs = cl.find({'tokens.l': {'$all': keys}})
+    TIMING[5] = time.time()
+    CTIME[5] += TIMING[6] - TIMING[5]
 
     for sen in rs:
         tree0 = sen['tree0']
         tk = sen['tokens']
+        TIMING[0] = time.time()
+        CTIME[0] += TIMING[0] - TIMING[5]
         tree = transfer_Node_i(tree0)
         halfSent = [w['t'] for w in tk]
         arg = dict({
@@ -424,10 +445,16 @@ def get_comnex_db(tokens, key, args):
             'strlist': retJson['result'],
             'sent': halfSent,
         }, **args)
+        TIMING[1] = time.time()
+        CTIME[1] += TIMING[1] - TIMING[0]
         check_find(key, tokens, arg)
+        TIMING[5] = time.time()
 
+    TIMING[6] = time.time()
     retJson['desc']['sen'].sort(key=lambda word: -word['count'] if not word['other'] else 0)
     result_part(retJson)
+    CTIME[5] += time.time() - TIMING[5]
+    print CTIME
     return retJson
 
 

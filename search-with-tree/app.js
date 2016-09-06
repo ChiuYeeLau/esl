@@ -17,9 +17,7 @@ $(document).ready(function() {
         var word_pos = "";
         var i = 0;
         $(".word").each(function(){
-            if($(this).attr("class") == "word active") {
-                word_pos = word_pos + (i + " ");
-            }
+            word_pos = word_pos + (i + " ");
             i++;
         });
         if (!word_pos) {
