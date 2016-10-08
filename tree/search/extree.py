@@ -3,7 +3,7 @@
 
 import json
 # from itertools import product, imap
-from search.parse import transfer_Node_i, parse, tree_format, validpass
+from search.parse import transfer_Node_i, parse, tree_format
 from search.clean_sentence import cleaned_sentence
 from search.util import getq
 from pymongo import MongoClient
@@ -15,6 +15,9 @@ cl = db.syntax2
 f = open('../script/newconjugate.json')
 conjugateDict = json.load(f)
 Gflag = True
+validpass = {
+    ("NN", "NP"), ("VB", "VP"), ("RB", "ADVP"), ("JJ", "ADJP")
+}
 
 
 def checksuit(strc, strp):

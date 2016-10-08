@@ -127,8 +127,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-CLIENT = MongoClient('166.111.139.42')
-# CLIENT = MongoClient('127.0.0.1')
+# CLIENT = MongoClient('166.111.139.42')
+CLIENT = MongoClient('127.0.0.1')
 # database change
 DB = CLIENT.test
 DB.authenticate('test', 'test')

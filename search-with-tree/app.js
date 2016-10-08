@@ -1,5 +1,5 @@
-// var hostAddr = '127.0.0.1:8000';
-var hostAddr = 'www.eslwriter.org:8005';
+var hostAddr = '127.0.0.1:8000';
+// var hostAddr = 'www.eslwriter.org:8005';
 
 $(document).ready(function() {
     $('.btn-reset').click(function() {
@@ -26,8 +26,10 @@ $(document).ready(function() {
         }
         var $btn = $(this).button('loading');
         function jsonBack(data){
-            $('.num-results').text(data.result.length);
+            var numResults = 0;
             $('.output').empty();
+            for (i=0; i < data.desc.sen.length; i++)
+                numResults += data.desc.sen[i].count;
             $(data.desc.sen).each(function(_, g) {
                 var li = $('<li>').html(g.display + ' (' + g.count + ')').
                     append($('<ul class="sentence-group">').attr('data-id', g.id)).appendTo('.output');
@@ -53,6 +55,7 @@ $(document).ready(function() {
                 */
                 $('<li class="sentence">').html(r.sentence).appendTo('ul.sentence-group[data-id="' + r.sen + '"]');
             });
+            $('.num-results').text(numResults);
             $btn.button('reset');
         }
 

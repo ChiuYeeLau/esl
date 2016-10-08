@@ -3,10 +3,6 @@ import requests
 # NLP_SERVER = '166.111.139.15:9000'
 NLP_SERVER = 'localhost:9000'
 
-validpass = {
-    ("NN", "NP"), ("VB", "VP"), ("RB", "ADVP"), ("JJ", "ADJP")
-}
-
 
 class Node(object):
     def __init__(self, elem="", parent=None, depth=-1):
@@ -45,6 +41,45 @@ def tree_structure_to_json(root):
                     print ","
                 else:
                     print "]}"
+
+
+def node_dict(elem="", parent=-1, depth=-1):
+    return {
+        'e': elem,
+        'c': [],
+        'p': parent,
+        'd': depth,
+        'x': {}
+    }
+
+
+def transfer_Tree(text):
+    level = 0
+    treelist = []
+    leaflist = []
+    treelist.append(node_dict("@", -1, 0))
+    root = 0
+    word = ""
+    for c in text:
+        if c == '(':
+            level += 1
+            if word:
+                treelist[root]['e'] = word
+                word = ""
+            treelist.append(node_dict("", root, level))
+            p = len(treelist) - 1
+            treelist[root]['c'].append(p)
+            root = p
+        elif c == ')':
+            level -= 1
+            if word:
+                treelist[root]['e'] = len(leaflist)
+                leaflist.append(root)
+                word = ""
+            root = treelist[root]['p']
+        else:
+            word += c
+    return (treelist, leaflist)
 
 
 def transfer_Node_i(text):

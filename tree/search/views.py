@@ -5,6 +5,7 @@ from search.util import get_query_inter, get_parse
 from search.qtree import get_qtree_inter
 from search.extree import get_extree_inter
 from search.comnex import get_comnex_inter
+from search.ftree import get_ftree_inter
 
 # Create your views here.
 
@@ -68,6 +69,11 @@ def search4(request, stype):
             elif stype == 2:
                 nxt = int(request.GET.get('next_pos', -1))
                 strlist = get_comnex_inter(message, key, 1, nxt)
+            elif stype == 3:
+                strlist = get_ftree_inter(message, key, 0)
+            elif stype == 4:
+                nxt = int(request.GET.get('next_pos', -1))
+                strlist = get_ftree_inter(message, key, 1, nxt)
             else:
                 strlist = {}
         else:
