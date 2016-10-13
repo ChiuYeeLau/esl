@@ -5,7 +5,7 @@
 import requests
 from itertools import izip
 from search.parse import parse
-# from search.clean_sentence import cleaned_sentence
+from search.clean_sentence import cleaned_sentence
 # from django.conf import settings
 
 ROWS = 1000
@@ -23,7 +23,7 @@ def addCluster(inMap, retList, title, dictc={}):
     return (retId, flag)
 
 
-def addResult(arg, res):
+def addResult(arg, res, pos):
     if arg['type'] == 0:
         qpos = [i for i, qm in enumerate(res) if not qm.isupper()]
         amod = [qm if i in qpos else '<a pos=%d href="#">' % i + qm + '</a>'
@@ -32,16 +32,14 @@ def addResult(arg, res):
         (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title,
                                    {'display': ' '.join(amod), 'pos': qpos, 'other': '_other_' in res})
         if flag:
-            # markSent = cleaned_sentence(arg['sent'], [])
-            markSent = arg['sent']
+            markSent = cleaned_sentence(arg['sent'], pos)
             arg['strlist'].append({'sentence': markSent, 'sen': retId})
     elif arg['type'] == 1:
-        title = res
+        title = ' '.join(res)
         (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title,
                                    {'display': title, 'pos': [], 'other': '_other_' in res})
         if flag:
-            # markSent = cleaned_sentence(arg['sent'], arg['keypos'])
-            markSent = arg['sent']
+            markSent = cleaned_sentence(arg['sent'], pos)
             arg['strlist'].append({'sentence': markSent, 'sen': retId})
 
 
@@ -64,7 +62,7 @@ def get_comnex_db(tokens, key, args):
     cnt = 0
 
     while True:
-        rs = requests.get('http://localhost:8983/solr/syntax/select?q=res1:%s&wt=json&start=%d&rows=%d' % (sents, cnt, ROWS))
+        rs = requests.get('http://localhost:8983/solr/syntax/select?q=res2:%s&wt=json&start=%d&rows=%d' % (sents, cnt, ROWS))
         cnt += ROWS
         rs = rs.json()['response']['docs']
         if len(rs) == 0:
@@ -73,18 +71,37 @@ def get_comnex_db(tokens, key, args):
         for sen in rs:
             res1 = sen['res1']
             res2 = sen['res2']
-            sent = sen['sent']
+            res3 = sen['res3']
+            sent = sen['sent'].split()
             arg = dict({
                 'senmap': senmap,
                 'senlist': retJson['desc']['sen'],
                 'strlist': retJson['result'],
                 'sent': sent,
             }, **args)
-            for res in izip(res1, res2):
-                if arg['type'] == 0 and keys[0] in res[0]:
-                    addResult(arg, res[0].split())
-                if arg['type'] == 1 and t1key == res[0]:
-                    addResult(arg, res[1])
+            for res in izip(res1, res2, res3):
+                nrs = [[], [], []]
+                nrs[0] = res[0].split()
+                nrs[1] = res[1].split()
+                nrs[2] = [int(ps) for ps in res[2].split()]
+                # if arg['type'] == 1 and t1key == res[0]:
+                #     addResult(arg, nrs[1], nrs[2])
+                if arg['type'] in [0, 1]:
+                    adr = []
+                    adp = []
+                    cc = 0
+                    for rs in izip(nrs[0], nrs[1], nrs[2]):
+                        if rs[1] in keys:
+                            adr.append(rs[1])
+                            adp.append(rs[2])
+                            cc += 1
+                        else:
+                            adr.append(rs[0])
+                    if cc == len(keys):
+                        if arg['type'] == 1 and ' '.join(adr) == t1key:
+                            addResult(arg, nrs[1], nrs[2])
+                        elif arg['type'] == 0:
+                            addResult(arg, adr, adp)
 
     retJson['desc']['sen'].sort(key=lambda word: -word['count'] if not word['other'] else 0)
     result_part(retJson)
