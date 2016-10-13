@@ -178,20 +178,24 @@ def make_whole_tree(s, tk):
 def modeget(child, arg, q, ad=''):
     tks = arg['tk']
     c = q['ch']
-    c['v'] &= child['e'][0].isalpha()
     c['v'] &= child['e'] not in ['MD', 'CC']
     c['w'] += 1
     e = child['e']
     r = tks[child['x']['r']][1]
+    rp = child['x']['r']
     if not r:
         r = '_other_'
-    if e in ['CD', 'PDT', 'QP', 'PRN', 'DT', 'PRP$', 'POS']:
+    if not child['e'][0].isalpha():
+        c['w'] -= 1
+    elif e in ['CD', 'PDT', 'QP', 'PRN', 'DT', 'PRP$', 'POS']:
         c['w'] -= 1
     elif ad == 'V N' and e in ['PRT']:
         c['w'] -= 1
+        q['pos'].append(child['x']['r'])
         q['word'].append(tks[child['x']['r']][1])
     elif ad == 'VBG' and e in ['VBG', 'VBN']:
         c['g'] |= 1
+        q['pos'].append(child['x']['r'])
         q['mod'].append(e)
         q['word'].append(tks[child['x']['r']][0])
     elif e in ['ADVP']:
@@ -215,6 +219,7 @@ def modeget(child, arg, q, ad=''):
                 c['sj'] -= 1
                 e = 'JJ'
             if c['sn'] >= 0 and c['sj'] >= 0:
+                q['pos'].append(rp)
                 q['mod'].append(disp.get(e, e))
                 q['word'].append(r)
             else:
@@ -223,6 +228,7 @@ def modeget(child, arg, q, ad=''):
             c['sj'] -= 1
             e = 'JJ'
             if c['sj'] >= 0:
+                q['pos'].append(child['x']['r'])
                 q['mod'].append(disp.get(e, e))
                 q['word'].append(tks[child['x']['r']][0])
         elif e in ['RB']:
@@ -230,6 +236,7 @@ def modeget(child, arg, q, ad=''):
                 c['w'] -= 1
             else:
                 c['sv'] -= 1
+                q['pos'].append(rp)
                 q['mod'].append(disp.get(e, e))
                 q['word'].append(r)
         elif e in ['VB']:
@@ -238,15 +245,18 @@ def modeget(child, arg, q, ad=''):
             elif tk in ['have']:
                 c['w'] -= 1
             else:
+                q['pos'].append(rp)
                 q['mod'].append(disp.get(e, e))
                 q['word'].append(r)
         else:
+            q['pos'].append(rp)
             q['mod'].append(disp.get(e, e))
             q['word'].append(r)
     else:
         if e == 'ADJP':
             c['sj'] -= 1
         if c['sj'] >= 0:
+            q['pos'].append(rp)
             q['mod'].append(disp.get(e, e))
             q['word'].append(r)
         else:
@@ -254,55 +264,19 @@ def modeget(child, arg, q, ad=''):
 
 
 def dfs_get(node, arg, q, ad, flag):
-    comone = arg['common']['e']
     tree = arg['tree']
     tk = arg['tk']
     for i_child in node['c']:
         child = tree[i_child]
-        if child['x'].get('tag', -1) == arg['tag']:
-            if not arg['ansm']:
-                if len(child['c']) > 0:
-                    dfs_get(child, arg, q, ad, flag)
-                else:
-                    q['pos'].append(len(q['mod']))
-                    q['mod'].append(tk[child['x']['r']][1])
-                    q['word'].append(tk[child['x']['r']][1])
-            else:
-                sub = arg['ansm']
-                # q['mod'] += sub + '(%s) ' % arg['common']['e']
-                lmod = len(q['mod'])
-                q['pos'] += [lmod + i for i in arg['ansp']]
-                q['mod'] += sub
-                if child['e'] == 'PP':
-                    qmod = q['mod'][:]
-                    qpos = q['pos'][:]
-                    dfs_get(child, arg, q, '', flag)
-                    q['mod'] = qmod[:]
-                    q['pos'] = qpos[:]
-                else:
-                    q['word'] += sub
         # the common node
-        elif getq(comone) in ['NN', 'NP'] and child['e'] == 'VP':
-            q['ch']['v'] &= not checkbe(node, arg)
-        elif comone in ['ADVP', 'RB', 'RBR'] and \
-                (getq(child['e']) not in ['VB', 'VP', 'JJ'] and child['e'] not in ['ADJP']):
-            pass
-        elif child['e'] == 'PP':
+        if child['e'] == 'PP':
             dfs_get(child, arg, q, 'VBG', flag)
         # PP extend
         elif child['e'] in ['S'] and len(child['c']) == 1 and tree[child['c'][0]]['e'] == "VP":
             dfs_get(tree[child['c'][0]], arg, q, 'VBG', flag)
         # S extend
-        elif getq(comone) in ['NN', 'NP'] and child['e'] in ['S', 'SBAR']:
+        elif node['e'] == 'NP' and child['e'] in ['S', 'SBAR']:
             pass
-        # N S forbid
-        # elif comone in ['ADJP', 'JJ'] and child['e'] in ['S', 'SBAR'] and q['ch']['w'] == 0:
-        #    pass
-        # J forbid
-        elif child['e'] in ['ADVP', 'RB', 'RBR']:
-            if comone not in ['ADVP', 'RB', 'RBR']:
-                flag['advp'] = True
-        # ignore S after N
         else:
             modeget(child, arg, q, ad)
         if q['ch']['g'] > 0:
@@ -316,14 +290,13 @@ def checkbe(node, arg):
     if len(checkbe['c']) == 0:
         wd = arg['tk'][int(checkbe['e'])][1]
         # if ts == 'VBN' and wd in ['be']:
-        return wd in ['be']
+        return (wd in ['be'], int(checkbe['e']))
     else:
-        return False
+        return (False, -1)
 
 
 def comnex_add(node, arg):
     q = {'mod': [], 'word': [], 'pos': [], 'ch': {'v': True, 'w': 0, 'g': 0, 'sn': 1, 'sj': 1, 'sv': 1}}
-    comone = arg['common']['e']
     tree = arg['tree']
     ad = ''
     ed = vm = br = False
@@ -331,117 +304,60 @@ def comnex_add(node, arg):
     if tree[node['p']]['e'] == 'VP' and node['e'] == 'VP':
         cb = tree[tree[tree[node['p']]['c'][0]]['c'][0]]
         if len(cb['c']) == 0:
-            wd = arg['tk'][int(cb['e'])][1]
+            pos = int(cb['e'])
+            wd = arg['tk'][pos][1]
             if wd in ['be']:
-                q['pos'].append(len(q['mod']))
+                q['pos'].append(pos)
                 q['mod'].append('be')
                 q['word'].append('be')
                 ed = True
-            # passive
-            # if ts == 'VBN' and wd in ['have'] or ts == 'VBG' and wd in ['be'] \
-            #        or ts == 'VB' and wd in ['will', 'would', 'to', 'do']:
             if wd in ['have', 'be', 'will', 'would', 'to', 'do']:
                 br = True
             # break later
     # verb example
-    if node['e'] in ['S', 'SBAR'] and ('ADJP' in childe or 'JJ' in childe):
+    qn = node['e']
+    q['node'] = qn
+    
+    if qn in ['S', 'SBAR'] and ('ADJP' in childe or 'JJ' in childe):
         return 0
     # make it clear (that)
-    if comone in ['ADJP', 'JJ']:
-        q['ch']['sj'] -= 1
-    if node['e'] == 'NP':
-        if getq(comone) in ['NN', 'NP']:
-            q['ch']['sn'] -= 1
-            ad = 'N V'
-        # complicate NP
-        if getq(comone) in ['VB', 'VP']:
-            vm = True
-        # keep the tense
-    if node['e'] == 'ADJP' and comone in ['ADJP', 'JJ'] and tree[node['p']]['e'] == 'VP':
-        if checkbe(node, arg):
-            q['pos'].append(len(q['mod']))
+    
+    if qn == 'ADJP' and tree[node['p']]['e'] == 'VP':
+        ber = checkbe(node, arg)
+        if ber[0]:
+            q['pos'].append(ber[1])
             q['mod'].append('be')
             q['word'].append('be')
     # be clear that
-    if node['e'] == 'PP':
-        return 1 if getq(comone) in ['NN', 'NP'] else 0
+    if qn == 'PP':
+        return 0
     # search for key
-    if node['e'] == 'VP' and getq(comone) in ('NN', 'NP'):
-        ad = 'V N'
-    # cut down trees
     flag = {'edvm': ed or vm, 'advp': False}
     dfs_get(node, arg, q, ad, flag)
-    if node == arg['common']:
-        arg['ansm'] = q['mod']
-        arg['answ'] = q['word']
-        arg['ansp'] = q['pos']
-
-    if (q['ch']['v'] and q['ch']['w'] > 0) or (node == arg['common'] and len(arg['keylm']) > 1):
+    if q['ch']['v'] and q['ch']['w'] > 1:
         arg['strlist1'].append(' '.join(q['mod']))
         arg['strlist2'].append(' '.join(q['word']))
-
-    if not ed and not vm and flag['advp'] and \
-            (comone in ['VP', 'ADJP'] or getq(comone) in ['VB', 'JJ']):
-        q = {'mod': [], 'word': [], 'pos': [], 'ch': {'v': True, 'w': 0, 'g': 0, 'sn': 1, 'sj': 1, 'sv': 1}}
-        for i_child in node['c']:
-            child = tree[i_child]
-            if child['x'].get('tag', -1) == arg['tag']:
-                sub = arg['ansm']
-                # q['mod'] += sub + '(%s) ' % arg['common']['e']
-                lmod = len(q['mod'])
-                q['pos'] += [lmod + i for i in arg['ansp']]
-                q['mod'] += sub
-                q['word'] += sub
-            elif child['e'] in ['ADVP', 'RB', 'RBR']:
-                modeget(child, arg, q)
-            else:
-                pass
-        if q['ch']['v'] and q['ch']['w'] > 0:
-            arg['strlist1'].append(' '.join(q['mod']))
-            arg['strlist2'].append(' '.join(q['word']))
-
+        arg['strlist3'].append(' '.join(str(ps) for ps in q['pos']))
+    
     return 0 if ed or vm or br else 100
 
 
-def comnex_find(arg):
-    # print arg['common']['e']
-    if not arg['tk'][arg['common']['x']['r']][0]:
-        return
-    node = arg['common']
-    brk = 10
-    while node['e'] != '@':
-        if arg['tk'][node['x']['r']][1] not in arg['keylm']:
-            brk = min(brk, 1)
-        brk = min(brk - 1, comnex_add(node, arg))
-        if brk == 0:
-            return
-        node = arg['tree'][node['p']]
+def dfs_find(node, arg):
+    tree = arg['tree']
+    for child in node['c']:
+        dfs_find(tree[child], arg)
+    if len(node['c']) == 0 or len(node['c']) == 1 and len(tree[node['c'][0]]['c']) == 0:
+        pass
+    else:
+        comnex_add(node, arg)
 
 
 def check_find(arg):
-    for tag in range(len(arg['tk']) - 1):
-        qkey = [tag]
-        arg['keypos'] = qkey
-        arg['keytk'] = [arg['tk'][k] for k in qkey]
-        arg['keylm'] = [k[1] for k in arg['keytk']]
-        arg['ansm'] = ''
-        arg['answ'] = ''
-        arg['ansp'] = ''
-        arg['tag'] = tag
-        node = arg['nodes'][qkey[0]]
-        arg['common'] = arg['tree'][node['p']]
-        if getq(arg['common']['e']) not in ['NN', 'JJ', 'RB', 'VB']:
-            continue
-        if arg['keylm'][0] in ['be']:
-            continue
-        while node['p'] != -1:
-            node['x']['tag'] = tag
-            node = arg['tree'][node['p']]
-        comnex_find(arg)
+    dfs_find(arg['tree'][0], arg)
 
 
 def mongo_start():
-    fin = open("../parsed/index.txt", "r")
+    fin = open(sys.argv[2], "r")
 
     text = fin.read()
     index = text.split()
@@ -466,16 +382,17 @@ def mongo_start():
                 if len(node['c']) == 0:
                     leaf.append(node)
 
-            retJson = {'r1': [], 'r2': []}
+            retJson = {'r1': [], 'r2': [], 'r3': []}
             arg = dict({
                 'tk': tk,
                 'tree': tree1,
                 'nodes': leaf,
                 'strlist1': retJson['r1'],
                 'strlist2': retJson['r2'],
+                'strlist3': retJson['r3'],
             })
             check_find(arg)
-            bulk.insert({'sent': s[0], 'res1': retJson['r1'], 'res2': retJson['r2']})
+            bulk.insert({'sent': s[0], 'res1': retJson['r1'], 'res2': retJson['r2'], 'res3': retJson['r3']})
 
         cnt += 1
         if cnt % 100 == 0:
@@ -500,7 +417,7 @@ def solr_start():
     info = []
 
     for file in index:
-        fin1 = open(file, "r")
+        fin1 = open("../parsed/" + file, "r")
         text1 = fin1.read()
         print file
         sentences = parse_text_file(file, text1)
@@ -514,20 +431,21 @@ def solr_start():
                 if len(node['c']) == 0:
                     leaf.append(node)
 
-            retJson = {'r1': [], 'r2': []}
+            retJson = {'r1': [], 'r2': [], 'r3': []}
             arg = dict({
                 'tk': tk,
                 'tree': tree1,
                 'nodes': leaf,
                 'strlist1': retJson['r1'],
                 'strlist2': retJson['r2'],
+                'strlist3': retJson['r3'],
             })
             check_find(arg)
-            info.append({'sent': s[0], 'res1': retJson['r1'], 'res2': retJson['r2']})
+            info.append({'sent': s[0], 'res1': retJson['r1'], 'res2': retJson['r2'], 'res3': retJson['r3']})
 
         cnt += 1
+        
         if cnt % 100 == 0:
-            # break
             cnt2 += 1
             fout = open("totalsolr/solr%s.json" % cnt2, "w")
             fout.write(json.dumps(info))
