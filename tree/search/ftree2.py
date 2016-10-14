@@ -32,6 +32,7 @@ def addResult(arg, res, pos):
     (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title,
                                {'display': ' '.join(amod), 'pos': qpos, 'other': '_other_' in res})
     if flag:
+        pos = [i for i in pos if 0 <= i and i < len(arg['sent'])]
         markSent = cleaned_sentence(arg['sent'], pos)
         arg['strlist'].append({'sentence': markSent, 'sen': retId})
 
