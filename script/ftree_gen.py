@@ -126,9 +126,13 @@ def parse_text_file(file, s):
             lines, deps = tuple(p.split(ending * 2)[:2])
             # lines = tuple(p.split('\n\n')[0])
             lines = lines.split('\n')
-            index, sentence, tokens = tuple(lines[0:3])
-            tree = ending.join(lines[3:])
-            tokens = tokens[tokens.find('[') + 1:tokens.rfind(']')].split('] [')
+            index, sentence = tuple(lines[0:2])
+            i = 2
+            tokens = []
+            while lines[i][0] == '[':
+                tokens.append(lines[i][1:-1])
+                i += 1
+            tree = ending.join(lines[i:])
             if len(tokens) <= 3 or len(tokens) > 50:  # filter out fragments
                 continue
             tokens = [_parse_token(t) for t in tokens]
