@@ -372,7 +372,7 @@ def mongo_start():
     bulk = cl.initialize_unordered_bulk_op()
 
     for file in index:
-        fin1 = open("../parsed/" + file, "r")
+        fin1 = open(file, "r")
         text1 = fin1.read()
         print file
         sentences = parse_text_file(file, text1)
@@ -421,7 +421,7 @@ def solr_start():
     info = []
 
     for file in index:
-        fin1 = open("../parsed/" + file, "r")
+        fin1 = open(file, "r")
         text1 = fin1.read()
         print file
         sentences = parse_text_file(file, text1)

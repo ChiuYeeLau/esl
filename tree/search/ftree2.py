@@ -6,8 +6,9 @@ import requests
 from itertools import izip
 from search.parse import parse
 from search.clean_sentence import cleaned_sentence
-# from django.conf import settings
+from django.conf import settings
 
+ADDR = settings.ADDR
 ROWS = 1000
 
 
@@ -54,7 +55,7 @@ def get_comnex_db(tokens, key, args):
     cnt = 0
 
     while True:
-        rs = requests.get('http://localhost:8983/solr/syntax/select?q=res2:%s&wt=json&start=%d&rows=%d' % (sents, cnt, ROWS))
+        rs = requests.get('http://%s:8983/solr/syntax/select?q=res2:%s&wt=json&start=%d&rows=%d' % (ADDR, sents, cnt, ROWS))
         cnt += ROWS
         rs = rs.json()['response']['docs']
         if len(rs) == 0:
