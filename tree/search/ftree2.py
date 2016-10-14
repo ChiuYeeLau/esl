@@ -24,23 +24,15 @@ def addCluster(inMap, retList, title, dictc={}):
 
 
 def addResult(arg, res, pos):
-    if arg['type'] == 0:
-        qpos = [i for i, qm in enumerate(res) if not qm.isupper()]
-        amod = [qm if i in qpos else '<a pos=%d href="#">' % i + qm + '</a>'
-                for i, qm in enumerate(res)]
-        title = ' '.join(res)
-        (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title,
-                                   {'display': ' '.join(amod), 'pos': qpos, 'other': '_other_' in res})
-        if flag:
-            markSent = cleaned_sentence(arg['sent'], pos)
-            arg['strlist'].append({'sentence': markSent, 'sen': retId})
-    elif arg['type'] == 1:
-        title = ' '.join(res)
-        (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title,
-                                   {'display': title, 'pos': [], 'other': '_other_' in res})
-        if flag:
-            markSent = cleaned_sentence(arg['sent'], pos)
-            arg['strlist'].append({'sentence': markSent, 'sen': retId})
+    qpos = [i for i, qm in enumerate(res) if not qm.isupper()]
+    amod = [qm if i in qpos else '<a pos=%d href="#">' % i + qm + '</a>'
+            for i, qm in enumerate(res)]
+    title = ' '.join(res)
+    (retId, flag) = addCluster(arg['senmap'], arg['senlist'], title,
+                               {'display': ' '.join(amod), 'pos': qpos, 'other': '_other_' in res})
+    if flag:
+        markSent = cleaned_sentence(arg['sent'], pos)
+        arg['strlist'].append({'sentence': markSent, 'sen': retId})
 
 
 def result_part(retJson):
@@ -87,19 +79,25 @@ def get_comnex_db(tokens, key, args):
                 # if arg['type'] == 1 and t1key == res[0]:
                 #     addResult(arg, nrs[1], nrs[2])
                 if arg['type'] in [0, 1]:
-                    adr = []
+                    adr, adr2 = [], []
                     adp = []
                     cc = 0
-                    for rs in izip(nrs[0], nrs[1], nrs[2]):
+                    for i, rs in enumerate(izip(nrs[0], nrs[1], nrs[2])):
                         if rs[1] in keys:
                             adr.append(rs[1])
+                            adr2.append(rs[1])
                             adp.append(rs[2])
                             cc += 1
                         else:
                             adr.append(rs[0])
+                            if i == arg['nxt']:
+                                adr2.append(rs[1])
+                                adp.append(rs[2])
+                            else:
+                                adr2.append(rs[0])
                     if cc == len(keys):
                         if arg['type'] == 1 and ' '.join(adr) == t1key:
-                            addResult(arg, nrs[1], nrs[2])
+                            addResult(arg, adr2, adp)
                         elif arg['type'] == 0:
                             addResult(arg, adr, adp)
 

@@ -78,7 +78,8 @@ def search4(request, stype):
             elif stype == 5:
                 strlist = get_ftree2_inter(message, key, 0)
             elif stype == 6:
-                strlist = get_ftree2_inter(message, key, 1, -1)
+                nxt = int(request.GET.get('next_pos', -1))
+                strlist = get_ftree2_inter(message, key, 1, nxt)
             else:
                 strlist = {}
         else:

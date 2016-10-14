@@ -210,10 +210,11 @@ def modeget(child, arg, q, ad=''):
         else:
             c['w'] -= 1
     elif len(child['c']) == 1 and len(arg['tree'][child['c'][0]]['c']) == 0:
-        tk = arg['tk'][int(arg['tree'][child['c'][0]]['e'])][1]
+        tkp = int(arg['tree'][child['c'][0]]['e'])
+        tk = arg['tk'][tkp][1]
         e = getq(child['e'])
         if e in ['IN', 'TO']:
-            q['pos'].append(len(q['mod']))
+            q['pos'].append(tkp)
             q['mod'].append(tk)
             q['word'].append(tk)
         elif e in ['NN', 'JJ']:
@@ -269,7 +270,6 @@ def modeget(child, arg, q, ad=''):
 
 def dfs_get(node, arg, q, ad, flag):
     tree = arg['tree']
-    tk = arg['tk']
     for i_child in node['c']:
         child = tree[i_child]
         # the common node
@@ -321,11 +321,11 @@ def comnex_add(node, arg):
     # verb example
     qn = node['e']
     q['node'] = qn
-    
+
     if qn in ['S', 'SBAR'] and ('ADJP' in childe or 'JJ' in childe):
         return 0
     # make it clear (that)
-    
+
     if qn == 'ADJP' and tree[node['p']]['e'] == 'VP':
         ber = checkbe(node, arg)
         if ber[0]:
@@ -342,7 +342,7 @@ def comnex_add(node, arg):
         arg['strlist1'].append(' '.join(q['mod']))
         arg['strlist2'].append(' '.join(q['word']))
         arg['strlist3'].append(' '.join(str(ps) for ps in q['pos']))
-    
+
     return 0 if ed or vm or br else 100
 
 
@@ -448,7 +448,7 @@ def solr_start():
             info.append({'sent': s[0], 'res1': retJson['r1'], 'res2': retJson['r2'], 'res3': retJson['r3']})
 
         cnt += 1
-        
+
         if cnt % 100 == 0:
             cnt2 += 1
             fout = open("totalsolr/solr%s.json" % cnt2, "w")
