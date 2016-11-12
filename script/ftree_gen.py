@@ -136,6 +136,7 @@ def parse_text_file(file, s):
             if len(tokens) <= 3 or len(tokens) > 50:  # filter out fragments
                 continue
             tokens = [_parse_token(t) for t in tokens]
+            sentence = ' '.join([text[0] for text in tokens])
             sentences.append((sentence, tokens, tree))
         except Exception:
             print 'wrong: ', file
