@@ -7,6 +7,7 @@ from search.extree import get_extree_inter
 from search.comnex import get_comnex_inter
 from search.ftree import get_ftree_inter
 from search.ftree2 import get_ftree2_inter
+from search.ftree_mod import get_ftree_mod_inter
 
 # Create your views here.
 
@@ -80,6 +81,11 @@ def search4(request, stype):
             elif stype == 6:
                 nxt = int(request.GET.get('next_pos', -1))
                 strlist = get_ftree2_inter(message, key, 1, nxt)
+            elif stype == 7:
+                strlist = get_ftree_mod_inter(message, key, 0)
+            elif stype == 8:
+                nxt = int(request.GET.get('next_pos', -1))
+                strlist = get_ftree_mod_inter(message, key, 1, nxt)
             else:
                 strlist = {}
         else:

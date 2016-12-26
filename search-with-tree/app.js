@@ -40,7 +40,7 @@ $(document).ready(function() {
                     for (i=0; i < g.pos.length; i++) {
                         new_pos += g.pos[i] + " ";
                     }
-                    $.getJSON("http://" + hostAddr + '/searchff1/',
+                    $.getJSON("http://" + hostAddr + '/searchfm1/',
                               {"sentence":g.title, "word_pos":new_pos, "next_pos":$(this).attr('pos')}, jsonBack);
                 });
             });
